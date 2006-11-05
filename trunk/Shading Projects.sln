@@ -5,6 +5,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ToonShader", "ToonShader\To
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AnisotropicShader", "AnisotropicShader\AnisotropicShader.vcproj", "{EDB765F6-B5B0-4ADD-B677-11864773396E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HelloMultipass", "HelloMultipass\HelloMultipass.vcproj", "{3CFBE4A6-2612-46B0-A381-9D0D829BE3FE}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GlowShader", "GlowShader\GlowShader.vcproj", "{8EA82FEC-A2F2-4B91-8E14-FB34D0CBD77C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +23,14 @@ Global
 		{EDB765F6-B5B0-4ADD-B677-11864773396E}.Debug|Win32.Build.0 = Debug|Win32
 		{EDB765F6-B5B0-4ADD-B677-11864773396E}.Release|Win32.ActiveCfg = Release|Win32
 		{EDB765F6-B5B0-4ADD-B677-11864773396E}.Release|Win32.Build.0 = Release|Win32
+		{3CFBE4A6-2612-46B0-A381-9D0D829BE3FE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{3CFBE4A6-2612-46B0-A381-9D0D829BE3FE}.Debug|Win32.Build.0 = Debug|Win32
+		{3CFBE4A6-2612-46B0-A381-9D0D829BE3FE}.Release|Win32.ActiveCfg = Release|Win32
+		{3CFBE4A6-2612-46B0-A381-9D0D829BE3FE}.Release|Win32.Build.0 = Release|Win32
+		{8EA82FEC-A2F2-4B91-8E14-FB34D0CBD77C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{8EA82FEC-A2F2-4B91-8E14-FB34D0CBD77C}.Debug|Win32.Build.0 = Debug|Win32
+		{8EA82FEC-A2F2-4B91-8E14-FB34D0CBD77C}.Release|Win32.ActiveCfg = Release|Win32
+		{8EA82FEC-A2F2-4B91-8E14-FB34D0CBD77C}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
