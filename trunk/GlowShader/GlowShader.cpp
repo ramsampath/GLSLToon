@@ -8,10 +8,13 @@
 #include "ShaderProgram.h"
 #include "ShaderUniformValue.h"
 
+#include "GlowEffect.h"
+
 GLuint originalTexture, horizBlurredTex, finalBlurredTex;
 
 // ########### SHADERS DECLARATIONS ###########
 ShaderProgram* shaderProgram;
+ShaderProgram* shaderProgram2;
 ShaderObject* horizontalBlurVertexShader;
 ShaderObject* horizontalBlurFragmentShader;
 ShaderObject* verticalBlurVertexShader;
@@ -25,6 +28,8 @@ FrameBufferObject* fbo;
 
 int imageWinWidth = 512;
 int imageWinHeight = 512;
+
+
 
 /**
  * @param w
@@ -72,7 +77,7 @@ void keyboard (unsigned char key, int x, int y)
 
 /**
  */
-void renderSceneOnQuad(GLuint textureId)
+void renderSceneOnQuad(GLuint textureId, GLenum textureUnit)
 {
 	glMatrixMode( GL_PROJECTION );
 	glPushMatrix();
@@ -85,21 +90,21 @@ void renderSceneOnQuad(GLuint textureId)
 
 	glEnable( GL_TEXTURE_2D );
 
-	glActiveTexture( GL_TEXTURE0 );
+	glActiveTexture( textureUnit );
 	glBindTexture(GL_TEXTURE_2D, textureId);
 
 	//RENDER MULTITEXTURE ON QUAD
 	glBegin(GL_QUADS);
-	glMultiTexCoord2f( GL_TEXTURE0, 0.0f, 0.0f );
+	glMultiTexCoord2f( textureUnit, 0.0f, 0.0f );
 	glVertex2f( -1.0f, -1.0f );
 
-	glMultiTexCoord2f( GL_TEXTURE0, 1.0f, 0.0f );
+	glMultiTexCoord2f( textureUnit, 1.0f, 0.0f );
 	glVertex2f( 1.0f, -1.0f );
 
-	glMultiTexCoord2f( GL_TEXTURE0, 1.0f, 1.0f );
+	glMultiTexCoord2f( textureUnit, 1.0f, 1.0f );
 	glVertex2f( 1.0f, 1.0f );
 
-	glMultiTexCoord2f( GL_TEXTURE0, 0.0f, 1.0f );
+	glMultiTexCoord2f( textureUnit, 0.0f, 1.0f );
 	glVertex2f( -1.0f, 1.0f );
 	glEnd();
 
@@ -124,7 +129,7 @@ void render()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//glDrawBuffer( GL_COLOR_ATTACHMENT0_EXT );
+	glDrawBuffer( GL_COLOR_ATTACHMENT0_EXT );
 
 	glPushMatrix();
 	glColor4f(1, 1, 1, 1);
@@ -132,32 +137,35 @@ void render()
 	glPopMatrix();
 
 	// #### SECOND STEP: blur the texture horizontally 
-	// and store it into the 'horizBlurredTex'
-	// Choose the right attachment
+	// and store it into the GL_COLOR_ATTACHMENT1_EXT or  'horizBlurredTex'
+	// Render it to the right texture: 'horizBlurredTex'
 	glDrawBuffer( GL_COLOR_ATTACHMENT1_EXT );
 
 	// render using the horizontal blur shader and the original texture
 	shaderProgram->useProgram();
-	renderSceneOnQuad( originalTexture );
+	renderSceneOnQuad( originalTexture, GL_TEXTURE0);
 	shaderProgram->disableProgram();
 
 	// #### THIRD STEP: blur the texture vertically 
 	// and store it into the 'finalBlurredTex'
 	// Choose the right attachment
 	glDrawBuffer( GL_COLOR_ATTACHMENT2_EXT );
+	//glReadBuffer( GL_COLOR_ATTACHMENT1_EXT );
 
-	shaderProgram->detachShader( *horizontalBlurFragmentShader );
-	shaderProgram->detachShader( *horizontalBlurVertexShader );
+	//shaderProgram->detachShader( *horizontalBlurFragmentShader );
+	//shaderProgram->detachShader( *horizontalBlurVertexShader );
 
-	shaderProgram->attachShader( *verticalBlurFragmentShader );
-	shaderProgram->attachShader( *verticalBlurVertexShader );
+	//shaderProgram->attachShader( *verticalBlurFragmentShader );
+	//shaderProgram->attachShader( *verticalBlurVertexShader );
 
-	shaderProgram->buildProgram();
+	//textureUniform.setValue( 0 );
+
+	//shaderProgram->buildProgram();
 
 	// render using the vertical blur shader and the horizontal blurred texture
-	shaderProgram->useProgram();
-	renderSceneOnQuad( horizBlurredTex );
-	shaderProgram->disableProgram();
+	shaderProgram2->useProgram();
+	renderSceneOnQuad( horizBlurredTex, GL_TEXTURE0 );
+	shaderProgram2->disableProgram();
 
 	// 'unbind' the FBO. things will now be drawn to screen as usual
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -170,7 +178,7 @@ void render()
 	glColor3f(1.0, 1.0, 1.0); 
 
 	shaderProgram->useProgram();
-	renderSceneOnQuad( finalBlurredTex );
+	renderSceneOnQuad( finalBlurredTex, GL_TEXTURE0 );
 	shaderProgram->disableProgram();
 
 	//glPushMatrix();
@@ -194,15 +202,22 @@ void initShaders()
 
 	shaderProgram = new ShaderProgram();
 
+	shaderProgram2 = new ShaderProgram();
+
 	shaderProgram->attachShader( *horizontalBlurVertexShader );
 	shaderProgram->attachShader( *horizontalBlurFragmentShader );
+
+	shaderProgram2->attachShader( *verticalBlurFragmentShader );
+	shaderProgram2->attachShader( *verticalBlurVertexShader );
 
 	textureUniform.setValue( 0 );
 	textureUniform.setName("blurTex");
 
 	shaderProgram->addUniformObject( &textureUniform );
+	shaderProgram2->addUniformObject( &textureUniform );
 
 	shaderProgram->buildProgram();
+	shaderProgram2->buildProgram();
 }
 
 /**
