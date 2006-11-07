@@ -7,16 +7,20 @@ float brightPassValue(float luminance);
 
 void main(void)
 {
+	// get the fragment's texture color
 	vec4 texColor = texture2D(blurTex, gl_TexCoord[0].xy);
 	vec3 colorHSL;
 	vec3 color;
 	
 	color = texColor.xyz;
 	
+	// convert the color to HSL
 	convertRGBtoHSL(color, colorHSL);
 	
+	// apply the bright filter using the Luminance value
 	//colorHSL.z = brightPassValue( colorHSL.z );
 	
+	// convert it back to RGB
 	convertHSLtoRGB(colorHSL, color);
 	
 	gl_FragColor = vec4(color, 1.0);
@@ -73,7 +77,8 @@ float hueRGB(float v1, float v2, inout float hue)
  */
 void convertHSLtoRGB(vec3 hsl, out vec3 rgb)
 {
-	if( hsl.y == 0.0 )
+	//if( hsl.y == 0.0 )
+	if( hsl.y < 0.000001 )
 	{
 		rgb.r = hsl.z;
 		rgb.g = hsl.z;
