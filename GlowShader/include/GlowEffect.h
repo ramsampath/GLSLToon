@@ -27,10 +27,16 @@ private:
 	GLuint originalTexture, horizBlurredTex, finalBlurredTex;
 
 	// ########### SHADERS DECLARATIONS ###########
-	ShaderProgram* shaderProgram;
-	ShaderProgram* shaderProgram2;
+	ShaderProgram* horizontalShaderProgram;
+	ShaderProgram* verticalShaderProgram;
+	ShaderProgram* brightPassShader;
+	
+	ShaderObject* brightPassVertexShader;
+	ShaderObject* brightPassFragmentShader;
+
 	ShaderObject* horizontalBlurVertexShader;
 	ShaderObject* horizontalBlurFragmentShader;
+	
 	ShaderObject* verticalBlurVertexShader;
 	ShaderObject* verticalBlurFragmentShader;
 	ShaderUniformValue<int> textureUniform;

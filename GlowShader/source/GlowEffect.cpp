@@ -14,6 +14,19 @@ GlowEffect::GlowEffect(unsigned int width, unsigned int height)
 
 GlowEffect::~GlowEffect(void)
 {
+	delete horizontalShaderProgram;
+	delete verticalShaderProgram;
+	delete brightPassShader;
+
+	delete brightPassVertexShader;
+	delete brightPassFragmentShader;
+
+	delete horizontalBlurVertexShader;
+	delete horizontalBlurFragmentShader;
+
+	delete verticalBlurVertexShader;
+	delete verticalBlurFragmentShader;
+	delete fbo; 
 }
 
 void GlowEffect::begin()
@@ -41,9 +54,9 @@ void GlowEffect::end()
 	glDrawBuffer( GL_COLOR_ATTACHMENT1_EXT );
 
 	// render using the horizontal blur shader and the original texture
-	shaderProgram->useProgram();
+	horizontalShaderProgram->useProgram();
 	renderSceneOnQuad( originalTexture, GL_TEXTURE0);
-	shaderProgram->disableProgram();
+	horizontalShaderProgram->disableProgram();
 
 	// #### THIRD STEP: blur the texture vertically 
 	// and store it into the 'finalBlurredTex'
@@ -51,9 +64,9 @@ void GlowEffect::end()
 	glDrawBuffer( GL_COLOR_ATTACHMENT2_EXT );
 
 	// render using the vertical blur shader and the horizontal blurred texture
-	shaderProgram2->useProgram();
+	verticalShaderProgram->useProgram();
 	renderSceneOnQuad( horizBlurredTex, GL_TEXTURE0 );
-	shaderProgram2->disableProgram();
+	verticalShaderProgram->disableProgram();
 
 	// 'unbind' the FBO. things will now be drawn to screen as usual
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -68,11 +81,15 @@ void GlowEffect::end()
 	/************************************************************************/
 	glColor3f(1.0, 1.0, 1.0);
 
-	shaderProgram->useProgram();
+	horizontalShaderProgram->useProgram();
 	renderSceneOnQuad( finalBlurredTex, GL_TEXTURE0 );
-	shaderProgram->disableProgram();
+	horizontalShaderProgram->disableProgram();
 }
 
+/**
+ * @param textureId
+ * @param textureUnit
+ */
 void GlowEffect::renderSceneOnQuad(GLuint textureId, GLenum textureUnit)
 {
 	glMatrixMode( GL_PROJECTION );
@@ -123,24 +140,30 @@ void GlowEffect::initShaders()
 	verticalBlurVertexShader = new ShaderObject(GL_VERTEX_SHADER, "./shaders/vertBlur.vert");
 	verticalBlurFragmentShader = new ShaderObject(GL_FRAGMENT_SHADER, "./shaders/vertBlur.frag");
 
-	shaderProgram = new ShaderProgram();
+	brightPassVertexShader = new ShaderObject(GL_VERTEX_SHADER, "./shaders/brightpass.vert");
+	brightPassFragmentShader = new ShaderObject(GL_FRAGMENT_SHADER, "./shaders/brightpass.frag");
 
-	shaderProgram2 = new ShaderProgram();
+	horizontalShaderProgram = new ShaderProgram();
+	verticalShaderProgram = new ShaderProgram();
+	brightPassShader = new ShaderProgram();
 
-	shaderProgram->attachShader( *horizontalBlurVertexShader );
-	shaderProgram->attachShader( *horizontalBlurFragmentShader );
+	horizontalShaderProgram->attachShader( *horizontalBlurVertexShader );
+	horizontalShaderProgram->attachShader( *horizontalBlurFragmentShader );
 
-	shaderProgram2->attachShader( *verticalBlurFragmentShader );
-	shaderProgram2->attachShader( *verticalBlurVertexShader );
+	verticalShaderProgram->attachShader( *verticalBlurFragmentShader );
+	verticalShaderProgram->attachShader( *verticalBlurVertexShader );
+
+	brightPassShader->attachShader( *brightPassVertexShader );
+	brightPassShader->attachShader( *brightPassFragmentShader );
 
 	textureUniform.setValue( 0 );
 	textureUniform.setName("blurTex");
 
-	shaderProgram->addUniformObject( &textureUniform );
-	shaderProgram2->addUniformObject( &textureUniform );
+	horizontalShaderProgram->addUniformObject( &textureUniform );
+	verticalShaderProgram->addUniformObject( &textureUniform );
 
-	shaderProgram->buildProgram();
-	shaderProgram2->buildProgram();
+	horizontalShaderProgram->buildProgram();
+	verticalShaderProgram->buildProgram();
 }
 
 /**
