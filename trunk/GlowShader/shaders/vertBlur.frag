@@ -20,6 +20,5 @@ void main(void)
   outp += 0.09375 * texture2D(blurTex, gl_TexCoord[0].xy + vec2(0.0, ddy*2.0) );
   outp += 0.015625 * texture2D(blurTex, gl_TexCoord[0].xy + vec2(0.0, ddy*3.0) );
 
-  //gl_FragColor =  outp;
-  gl_FragColor =  texture2D(blurTex, gl_TexCoord[0].xy);
+  gl_FragColor =  outp;
  }
