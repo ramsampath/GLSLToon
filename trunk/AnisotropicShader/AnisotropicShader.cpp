@@ -91,7 +91,7 @@ void drawScene() {
 	glLightfv(GL_LIGHT0, GL_POSITION, lightDirection); // Set light position
 	GLfloat diffuse[4] = {0.8f, 0, 0, 1.0};
 	GLfloat specular[4] = {1, 1, 1, 1.0};
-	GLfloat light_pos[4] = {0, 0, 1, 0};
+	//GLfloat light_pos[4] = {0, 0, 1, 0};
 	GLfloat shininess = 128;
 
 	// since we are scaling (in our particular case, uniform scaling) 
@@ -99,7 +99,7 @@ void drawScene() {
 	glEnable(GL_RESCALE_NORMAL);
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
-	glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
+	//glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
 	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
 	glMaterialf(GL_FRONT, GL_SHININESS, shininess);
@@ -149,9 +149,6 @@ void showFPS()
 */
 void display()
 {
-	static float t;
-	t = (float)glutGet(GLUT_ELAPSED_TIME); // Get elapsed time
-
 	// Clear the color buffer and the depth buffer.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
