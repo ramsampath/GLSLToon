@@ -2,7 +2,7 @@ uniform sampler2D blurTex;
 
 void convertRGBtoHSL(vec3 rgb, out vec3 hsl);
 void convertHSLtoRGB(vec3 hsl, out vec3 rgb);
-float hueRGB(float v1, float v2, inout float hue);
+float hueRGB(float v1, float v2, float hue);
 float brightPassValue(float luminance);
 
 void main(void)
@@ -12,18 +12,23 @@ void main(void)
 	vec3 colorHSL;
 	vec3 color;
 	
-	color = texColor.xyz;
+	color = texColor.rgb;
 	
 	// convert the color to HSL
 	convertRGBtoHSL(color, colorHSL);
 	
 	// apply the bright filter using the Luminance value
-	//colorHSL.z = brightPassValue( colorHSL.z );
+	colorHSL.z = brightPassValue( colorHSL.z );
 	
 	// convert it back to RGB
-	convertHSLtoRGB(colorHSL, color);
+	//convertHSLtoRGB(colorHSL, color);
+	
+	color *= colorHSL.z;
+	
+	gl_FragColor = vec4(color.g, color.g, color.g, 1.0);
 	
 	gl_FragColor = vec4(color, 1.0);
+	
 	//gl_FragColor = texture2D(blurTex, gl_TexCoord[0].xy);
 }
 
@@ -32,7 +37,7 @@ void main(void)
  */
 float brightPassValue(float luminance)
 {
-	if( luminance > 0.6)
+	if( luminance > 0.8)
 	{
 		return max(luminance * 1.8, 1.0);
 	}
@@ -45,7 +50,7 @@ float brightPassValue(float luminance)
 /*
  * @description 
  */
-float hueRGB(float v1, float v2, inout float hue)
+float hueRGB(float v1, float v2, float hue)
 {
 	if( hue < 0.0 )
 	{
@@ -93,16 +98,17 @@ void convertHSLtoRGB(vec3 hsl, out vec3 rgb)
 		}
 		else
 		{
-			var_2 = (hsl.z + hsl.y) - (hsl.y * hsl.z);
+			var_2 = hsl.z + hsl.y - (hsl.z * hsl.y);
 		}
 		
 		float var_1 = 2.0 * hsl.z - var_2;
 		
-		float t = hsl.x + (1.0/ 3.0);
-		float s = hsl.x - (1.0/ 3.0);
-		rgb.r = hueRGB( var_1, var_2, t);
+		float r = hsl.x + (1.0 / 3.0);
+		float b = hsl.x - (1.0 / 3.0);
+		
+		rgb.r = hueRGB( var_1, var_2, r);
 		rgb.g = hueRGB( var_1, var_2, hsl.x );
-		rgb.b = hueRGB( var_1, var_2, s );
+		rgb.b = hueRGB( var_1, var_2, b );
 	}
 }
 
@@ -145,6 +151,14 @@ void convertRGBtoHSL(vec3 rgb, out vec3 hsl)
 		{
 			hsl.x = deltaB - deltaG;
 		}
+//		if( (rgb.r == maxRGB) && (rgb.g >= rgb.b) )
+//		{
+//			hsl.x = deltaB - deltaG;
+//		}
+//		else if( rgb.r == maxRGB && (rgb.g < rgb.b) )
+//		{
+//			hsl.x = deltaB - deltaG + 1.0;
+//		}
 		else if( rgb.g == maxRGB )
 		{
 			hsl.x = (1.0 / 3.0) + deltaR - deltaB;
