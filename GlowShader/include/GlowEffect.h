@@ -24,15 +24,19 @@ private:
 private:
 	unsigned int imageWinWidth;
 	unsigned int imageWinHeight;
-	GLuint originalTexture, horizBlurredTex, finalBlurredTex;
+	GLuint originalTexture, brightPassTex, horizBlurredTex, finalBlurredTex;
 
 	// ########### SHADERS DECLARATIONS ###########
 	ShaderProgram* horizontalShaderProgram;
 	ShaderProgram* verticalShaderProgram;
-	ShaderProgram* brightPassShader;
+	ShaderProgram* brightPassShaderProgram;
+	ShaderProgram* blenderShaderProgram;
 	
 	ShaderObject* brightPassVertexShader;
 	ShaderObject* brightPassFragmentShader;
+
+	ShaderObject* blenderVertexShader;
+	ShaderObject* blenderFragmentShader;
 
 	ShaderObject* horizontalBlurVertexShader;
 	ShaderObject* horizontalBlurFragmentShader;
