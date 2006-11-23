@@ -290,10 +290,6 @@ void GlowEffect::init()
 	glGenTextures(1, &depthBufferId);
 
 	// initialize depth buffer
-	/*glGenRenderbuffersEXT(1, &depthBufferId);
-	glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depthBufferId);
-	glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-	GL_DEPTH_COMPONENT24, imageWinWidth, imageWinHeight);*/
 	glBindTexture(GL_TEXTURE_2D, depthBufferId);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
