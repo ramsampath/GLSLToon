@@ -75,8 +75,38 @@ void keyboard (unsigned char key, int x, int y)
 	}
 }
 
+void drawGlowSources()
+{
+	glDisable(GL_LIGHTING);
+	glPolygonMode(GL_BACK, GL_LINE);
+	glEnable(GL_POLYGON_OFFSET_LINE);
+	glPolygonOffset(1, 1);
+	glCullFace(GL_FRONT);
+	glLineWidth( 10.0 );
+	glColor3f(0.7f, 0.7f, 1.0f);
+
+	glPushMatrix();
+		glTranslatef(0, 0, -1);
+		glRotatef(angle, 1, 1, 0);
+		glutSolidTorus(0.1f, 0.2f, 32, 32);
+	glPopMatrix();
+
+	glPushMatrix();
+		glTranslatef(-0.5, -0.5, -1);
+		glutSolidSphere(0.2, 32, 32);
+	glPopMatrix();
+
+	glEnable(GL_LIGHTING);
+	glDisable(GL_POLYGON_OFFSET_LINE);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glCullFace(GL_BACK);
+	glLineWidth( 1.0 );
+}
+
 void drawScenario()
 {
+	drawGlowSources();
+
 	GLfloat diffuse1[4] = {0.8f, 0, 0, 1.0};
 	GLfloat specular1[4] = {1, 1, 1, 1.0};
 	GLfloat shininess1 = 100;
@@ -105,13 +135,6 @@ void drawScenario()
 	glTranslatef(-0.5, -0.5, -1);
 	glutSolidSphere(0.2, 32, 32);
 	glPopMatrix();
-
-	angle += 0.2f;
-
-	if ( angle > 360.0f)
-	{
-		angle -= 360.0f;
-	}
 }
 
 /**
@@ -126,7 +149,7 @@ void showFPS()
 		float fps = frames * 1000.0 /(t-t0);
 		t0 = t;		
 		frames = 0;
-		sprintf_s(titlestring, "Anisotropic Shader (%.1f FPS)", fps);
+		sprintf_s(titlestring, "Glow Shader (%.1f FPS)", fps);
 		glutSetWindowTitle(titlestring);
 	}
 	frames ++;
@@ -139,13 +162,26 @@ void render()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	
+
 	glow.begin();
-		
 		drawScenario();
+		//drawGlowSources();
 
 	glow.end();
 
 	showFPS();
+
+	/************************************************************************/
+	/*                                                                      */
+	/************************************************************************/
+	// update the angle: TMP
+	angle += 0.2f;
+
+	if ( angle > 360.0f)
+	{
+		angle -= 360.0f;
+	}
 
 	glutSwapBuffers();
 }
