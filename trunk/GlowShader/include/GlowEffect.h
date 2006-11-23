@@ -21,6 +21,8 @@ private:
 	void renderSceneOnQuad(GLuint textureId, GLenum textureUnit);
 	void initShaders();
 
+	void blendTextures(GLuint originalTexId, GLuint finalPassTexId);
+
 private:
 	unsigned int imageWinWidth;
 	unsigned int imageWinHeight;
@@ -44,9 +46,11 @@ private:
 	ShaderObject* verticalBlurVertexShader;
 	ShaderObject* verticalBlurFragmentShader;
 	ShaderUniformValue<int> textureUniform;
+	ShaderUniformValue<int> blenderTextureUniform;
 	// ########### END SHADERS DECLARATIONS ###########
 
 	// ########### FBO DECLARATIONS ###########
+	GLuint depthBufferId;
 	FrameBufferObject* fbo;
 	// ########### END FBO DECLARATIONS ###########
 };
