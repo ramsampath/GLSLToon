@@ -39,9 +39,9 @@ void GlowEffect::begin()
 	//bind the FBO, and the associated texture.
 	fbo->bind();
 
-	// #### FIRST STEP: Draw the object into the original texture: 'originalTexture'
 	glDrawBuffer( GL_COLOR_ATTACHMENT0_EXT );
 
+	// #### FIRST STEP: Draw the object into the original texture: 'originalTexture'
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -61,6 +61,9 @@ void GlowEffect::end()
 	// Render it to the right texture: 'brightPassTex'
 	glDrawBuffer( GL_COLOR_ATTACHMENT1_EXT );
 
+	// Don't forget to clean the COLOR/DEPTH buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	// render using the horizontal blur shader and the original texture
 	brightPassShaderProgram->useProgram();
 	renderSceneOnQuad( originalTexture, GL_TEXTURE0);
@@ -71,6 +74,9 @@ void GlowEffect::end()
 	// Render it to the right texture: 'horizBlurredTex'
 	glDrawBuffer( GL_COLOR_ATTACHMENT2_EXT );
 
+	// Don't forget to clean the COLOR/DEPTH buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 	// render using the vertical blur shader and the horizontal blurred texture
 	horizontalShaderProgram->useProgram();
 	renderSceneOnQuad( brightPassTex, GL_TEXTURE0 );
@@ -80,6 +86,9 @@ void GlowEffect::end()
 	// and store it into the 'finalBlurredTex'
 	// Choose the right attachment
 	glDrawBuffer( GL_COLOR_ATTACHMENT3_EXT );
+
+	// Don't forget to clean the COLOR/DEPTH buffers
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// render using the vertical blur shader and the horizontal blurred texture
 	verticalShaderProgram->useProgram();
@@ -101,17 +110,8 @@ void GlowEffect::end()
 
 	//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	blenderShaderProgram->useProgram();
-	//glEnable( GL_TEXTURE_2D );
-	//glActiveTexture( GL_TEXTURE1 );
-	//glBindTexture(GL_TEXTURE_2D, finalBlurredTex);
-	//glDisable(GL_TEXTURE_2D);
-	//glDrawBuffer( GL_FRONT );
-
-	//glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
-	renderSceneOnQuad( finalBlurredTex, GL_TEXTURE0 );
-	//blendTextures(originalTexture, finalBlurredTex);
-
-	//renderSceneOnQuad( finalBlurredTex, GL_TEXTURE1 );
+	//renderSceneOnQuad( finalBlurredTex, GL_TEXTURE0 );
+	blendTextures(originalTexture, finalBlurredTex);
 	blenderShaderProgram->disableProgram();
 }
 
@@ -127,47 +127,57 @@ void GlowEffect::blendTextures(GLuint originalTexId, GLuint finalPassTexId)
 
 	glMatrixMode( GL_MODELVIEW );
 	glPushMatrix();
-		glLoadIdentity();
+	glLoadIdentity();
 
-		glEnable( GL_TEXTURE_2D );
+	glEnable( GL_TEXTURE_2D );
+	glActiveTexture( GL_TEXTURE0 );
+	glBindTexture(GL_TEXTURE_2D, originalTexId);
 
-		glActiveTexture( GL_TEXTURE0 );
-		glBindTexture(GL_TEXTURE_2D, originalTexId);
-		glActiveTexture( GL_TEXTURE1 );
-		glBindTexture(GL_TEXTURE_2D, finalPassTexId);
+	glEnable( GL_TEXTURE_2D );
+	glActiveTexture( GL_TEXTURE1 );
+	glBindTexture(GL_TEXTURE_2D, finalPassTexId);
 
-		//RENDER MULTITEXTURE ON QUAD
-		glBegin(GL_QUADS);
-		glMultiTexCoord2f( GL_TEXTURE0, 0.0f, 0.0f );
-		glMultiTexCoord2f( GL_TEXTURE1, 0.0f, 0.0f );
-		glVertex2f( -1.0f, -1.0f );
+	//RENDER MULTITEXTURE ON QUAD
+	glBegin(GL_QUADS);
+	glMultiTexCoord2f( GL_TEXTURE0, 0.0f, 0.0f );
+	glMultiTexCoord2f( GL_TEXTURE1, 0.0f, 0.0f );
+	glVertex2f( -1.0f, -1.0f );
 
-		glMultiTexCoord2f( GL_TEXTURE0, 1.0f, 0.0f );
-		glMultiTexCoord2f( GL_TEXTURE1, 1.0f, 0.0f );
-		glVertex2f( 1.0f, -1.0f );
+	glMultiTexCoord2f( GL_TEXTURE0, 1.0f, 0.0f );
+	glMultiTexCoord2f( GL_TEXTURE1, 1.0f, 0.0f );
+	glVertex2f( 1.0f, -1.0f );
 
-		glMultiTexCoord2f( GL_TEXTURE0, 1.0f, 1.0f );
-		glMultiTexCoord2f( GL_TEXTURE1, 1.0f, 1.0f );
-		glVertex2f( 1.0f, 1.0f );
+	glMultiTexCoord2f( GL_TEXTURE0, 1.0f, 1.0f );
+	glMultiTexCoord2f( GL_TEXTURE1, 1.0f, 1.0f );
+	glVertex2f( 1.0f, 1.0f );
 
-		glMultiTexCoord2f( GL_TEXTURE0, 0.0f, 1.0f );
-		glMultiTexCoord2f( GL_TEXTURE1, 0.0f, 1.0f );
-		glVertex2f( -1.0f, 1.0f );
-		glEnd();
+	glMultiTexCoord2f( GL_TEXTURE0, 0.0f, 1.0f );
+	glMultiTexCoord2f( GL_TEXTURE1, 0.0f, 1.0f );
+	glVertex2f( -1.0f, 1.0f );
+	glEnd();
 
 	glPopMatrix();
 
 	glMatrixMode( GL_PROJECTION );
 	glPopMatrix();
 
+	/************************************************************************/
+	/* WHY DO I NEED THIS CRAP???????                                       */
+	/************************************************************************/
+
+	glActiveTexture( GL_TEXTURE1 );
 	glDisable(GL_TEXTURE_2D);
+
+	glActiveTexture( GL_TEXTURE0 );
+	glDisable(GL_TEXTURE_2D);
+
 	glDisable( GL_BLEND );
 }
 
 /**
- * @param textureId
- * @param textureUnit
- */
+* @param textureId
+* @param textureUnit
+*/
 void GlowEffect::renderSceneOnQuad(GLuint textureId, GLenum textureUnit)
 {
 	glMatrixMode( GL_PROJECTION );
@@ -243,15 +253,15 @@ void GlowEffect::initShaders()
 
 	textureUniform.setValue( 0 );
 	textureUniform.setName("blurTex");
-	//blenderTextureUniform.setValue( 1 );
-	//blenderTextureUniform.setName("originalTex");
+
+	blenderTextureUniform.setValue( 1 );
+	blenderTextureUniform.setName("originalTex");
 
 	horizontalShaderProgram->addUniformObject( &textureUniform );
 	verticalShaderProgram->addUniformObject( &textureUniform );
 	brightPassShaderProgram->addUniformObject( &textureUniform );
-	
 	blenderShaderProgram->addUniformObject( &textureUniform );
-	//blenderShaderProgram->addUniformObject( &blenderTextureUniform );
+	blenderShaderProgram->addUniformObject( &blenderTextureUniform );
 
 	horizontalShaderProgram->buildProgram();
 	verticalShaderProgram->buildProgram();
@@ -263,10 +273,6 @@ void GlowEffect::initShaders()
 */
 void GlowEffect::init()
 {
-	/************************************************************************/
-	/* NEEDS SOME REFACTOR: TEXTURE IDS TO AN ARRAY !!!!!!!!!!!!!!!!!       */
-	/************************************************************************/
-
 	// ########### init shaders ###############
 	initShaders();
 
@@ -281,11 +287,19 @@ void GlowEffect::init()
 	glGenTextures(1, &horizBlurredTex);
 	glGenTextures(1, &finalBlurredTex);
 
+	glGenTextures(1, &depthBufferId);
+
 	// initialize depth buffer
-	glGenRenderbuffersEXT(1, &depthBufferId);
+	/*glGenRenderbuffersEXT(1, &depthBufferId);
 	glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depthBufferId);
 	glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT,
-		GL_DEPTH_COMPONENT24, imageWinWidth, imageWinHeight);
+	GL_DEPTH_COMPONENT24, imageWinWidth, imageWinHeight);*/
+	glBindTexture(GL_TEXTURE_2D, depthBufferId);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, imageWinWidth, imageWinHeight, 0,
+		GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
 
 	fbo->bind();
 
@@ -293,30 +307,26 @@ void GlowEffect::init()
 	glBindTexture(GL_TEXTURE_2D, originalTexture);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );	//glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWinWidth, imageWinHeight, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		GL_RGBA, GL_FLOAT, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, brightPassTex);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );	//glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWinWidth, imageWinHeight, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		GL_RGBA, GL_FLOAT, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, horizBlurredTex);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );	//glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWinWidth, imageWinHeight, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		GL_RGBA, GL_FLOAT, NULL);
 
 	glBindTexture(GL_TEXTURE_2D, finalBlurredTex);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );	//glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );	//glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE );
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWinWidth, imageWinHeight, 0,
-		GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		GL_RGBA, GL_FLOAT, NULL);
 
 	fbo->attachTexture(originalTexture, GL_COLOR_ATTACHMENT0_EXT, 0);
 	fbo->attachTexture(brightPassTex,	GL_COLOR_ATTACHMENT1_EXT, 0);
