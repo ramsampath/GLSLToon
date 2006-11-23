@@ -66,12 +66,27 @@ FrameBufferObject::~FrameBufferObject(void)
  * @param texture
  * @param attachment
  */
-void FrameBufferObject::attachTexture(GLuint texture, GLenum attachment)
+void FrameBufferObject::attachTexture( GLuint texture, GLenum attachment, GLint mipmapLevel )
 {
 	// bind this texture to the current framebuffer obj. as 
 	// attachment 
 	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-		attachment, GL_TEXTURE_2D, texture, 0);
+		attachment, GL_TEXTURE_2D, texture, mipmapLevel);
+
+	errcheck();
+
+	//see if everything is OK
+	CHECK_FRAMEBUFFER_STATUS()
+}
+
+void FrameBufferObject::attachDepthBuffer(GLuint depthBufferId)
+{
+	//glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+	//	GL_DEPTH_ATTACHMENT_EXT,
+	//	GL_RENDERBUFFER_EXT, depthBufferId);
+
+	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+		GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depthBufferId, 0);
 
 	errcheck();
 

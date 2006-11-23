@@ -10,7 +10,8 @@ public:
 	FrameBufferObject(void);
 	~FrameBufferObject(void);
 
-	void attachTexture(GLuint texture, GLenum attachment);
+	void attachTexture(GLuint texture, GLenum attachment, GLint mipmapLevel);
+	void attachDepthBuffer(GLuint depthBufferId);
 
 	void bind();
 	static void unbind();
