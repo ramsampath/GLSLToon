@@ -7,7 +7,7 @@ void main(void)
 {
 	// get the fragment's texture color
 	vec3 color = texture2D(blurTex, gl_TexCoord[0].xy).xyz;
-	
+
 	// convert the color to HSL
 	float luminance = getLuminanceFromRGB(color);
 	
@@ -35,12 +35,12 @@ float brightPassValue(float luminance, out float alpha)
 	if( luminance > 0.8)
 	{
 		alpha = 1.0;
-		return max(luminance * 3.5, 1.0);
+		return max(luminance * 2.5, 1.0);
 	}
 	else
 	{
 		alpha = 0.0;
-		return max(luminance * 0.3, 0.0);
+		return max(luminance * 0.0, 0.0);
 	}
 }
 
