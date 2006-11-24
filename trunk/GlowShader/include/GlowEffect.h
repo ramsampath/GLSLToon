@@ -23,6 +23,8 @@ private:
 
 	void blendTextures(GLuint originalTexId, GLuint finalPassTexId);
 
+	void blurToMipmaps();
+
 private:
 	unsigned int imageWinWidth;
 	unsigned int imageWinHeight;
