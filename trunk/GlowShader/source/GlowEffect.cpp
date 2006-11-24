@@ -69,33 +69,7 @@ void GlowEffect::end()
 	renderSceneOnQuad( originalTexture, GL_TEXTURE0);
 	brightPassShaderProgram->disableProgram();
 
-	//// #### THIRD STEP: blur the texture horizontally 
-	//// and store it into the GL_COLOR_ATTACHMENT2_EXT or  'horizBlurredTex'
-	//// Render it to the right texture: 'horizBlurredTex'
-	//glDrawBuffer( GL_COLOR_ATTACHMENT2_EXT );
-
-	//// Don't forget to clean the COLOR/DEPTH buffers
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//// render using the vertical blur shader and the horizontal blurred texture
-	//horizontalShaderProgram->useProgram();
-	//renderSceneOnQuad( brightPassTex, GL_TEXTURE0 );
-	//horizontalShaderProgram->disableProgram();
-
 	blurToMipmaps();
-
-	//// #### THIRD STEP: blur the texture vertically 
-	//// and store it into the 'finalBlurredTex'
-	//// Choose the right attachment
-	//glDrawBuffer( GL_COLOR_ATTACHMENT3_EXT );
-
-	//// Don't forget to clean the COLOR/DEPTH buffers
-	//glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//// render using the vertical blur shader and the horizontal blurred texture
-	//verticalShaderProgram->useProgram();
-	//renderSceneOnQuad( horizBlurredTex, GL_TEXTURE0 );
-	//verticalShaderProgram->disableProgram();
 
 	// 'unbind' the FBO. things will now be drawn to screen as usual
 	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
@@ -112,13 +86,16 @@ void GlowEffect::end()
 
 	//glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	blenderShaderProgram->useProgram();
-		renderSceneOnQuad( finalBlurredTex, GL_TEXTURE0 );
-	//blendTextures(originalTexture, finalBlurredTex);
+		//renderSceneOnQuad( finalBlurredTex, GL_TEXTURE0 );
+		blendTextures(originalTexture, finalBlurredTex);
 	blenderShaderProgram->disableProgram();
 }
 
 void GlowEffect::blurToMipmaps()
 {
+	/************************************************************************/
+	/* HORIZONTAL BLUR                                                      */
+	/************************************************************************/
 	glDrawBuffer( GL_COLOR_ATTACHMENT2_EXT );
 
 	// Don't forget to clean the COLOR/DEPTH buffers
@@ -132,29 +109,9 @@ void GlowEffect::blurToMipmaps()
 	glBindTexture(GL_TEXTURE_2D, horizBlurredTex);
 	glGenerateMipmapEXT(GL_TEXTURE_2D);
 
-	
-	
-	//for (int i = 1; i < 3; i++)
-	//{
-	//	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-	//		GL_COLOR_ATTACHMENT2_EXT, GL_TEXTURE_2D, horizBlurredTex, i);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, i);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, i);
-
-	//	horizontalShaderProgram->useProgram();
-	//		renderSceneOnQuad( brightPassTex, GL_TEXTURE0 );
-	//	horizontalShaderProgram->disableProgram();
-	//}
-
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 2);
-
 	/************************************************************************/
-	/*                                                                      */
+	/* VERTICAL BLUR                                                        */
 	/************************************************************************/
-	//fbo->unbind();
-	//fbo1->bind();
-
 	glDrawBuffer( GL_COLOR_ATTACHMENT3_EXT );
 
 	// Don't forget to clean the COLOR/DEPTH buffers
@@ -167,20 +124,6 @@ void GlowEffect::blurToMipmaps()
 	
 	glBindTexture(GL_TEXTURE_2D, finalBlurredTex);
 	glGenerateMipmapEXT(GL_TEXTURE_2D);
-
-	
-
-	//for (int i = 1; i < 3; i++)
-	//{
-	//	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-	//		GL_COLOR_ATTACHMENT3_EXT, GL_TEXTURE_2D, finalBlurredTex, i);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, i);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, i);
-
-	//	verticalShaderProgram->useProgram();
-	//		renderSceneOnQuad( brightPassTex, GL_TEXTURE0 );
-	//	verticalShaderProgram->disableProgram();
-	//}
 }
 
 void GlowEffect::blendTextures(GLuint originalTexId, GLuint finalPassTexId)
@@ -198,11 +141,11 @@ void GlowEffect::blendTextures(GLuint originalTexId, GLuint finalPassTexId)
 	glLoadIdentity();
 
 	glEnable( GL_TEXTURE_2D );
-	glActiveTexture( GL_TEXTURE0 );
+	glActiveTexture( GL_TEXTURE1 );
 	glBindTexture(GL_TEXTURE_2D, originalTexId);
 
 	glEnable( GL_TEXTURE_2D );
-	glActiveTexture( GL_TEXTURE1 );
+	glActiveTexture( GL_TEXTURE0 );
 	glBindTexture(GL_TEXTURE_2D, finalPassTexId);
 
 	//RENDER MULTITEXTURE ON QUAD
@@ -347,17 +290,8 @@ void GlowEffect::init()
 	fbo = new FrameBufferObject();
 
 	/************************************************************************/
-	/*                                                                      */
+	/* TEXTURE CREATION                                                     */
 	/************************************************************************/
-	//fbo1 = new FrameBufferObject();
-	/************************************************************************/
-	/*                                                                      */
-	/************************************************************************/
-
-	/************************************************************************/
-	/* TEXTURE PART                                                         */
-	/************************************************************************/
-	// make a texture
 	glGenTextures(1, &originalTexture);
 	glGenTextures(1, &brightPassTex);
 	glGenTextures(1, &horizBlurredTex);
@@ -394,26 +328,11 @@ void GlowEffect::init()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWinWidth, imageWinHeight, 0,
 		GL_RGBA, GL_FLOAT, NULL);
 
-	/************************************************************************/
-	/*                                                                      */
-	/************************************************************************/
-	//glTexImage2D(GL_TEXTURE_2D, 1, GL_RGBA, imageWinWidth/2.0, imageWinHeight/2.0, 0,
-	//		GL_RGBA, GL_FLOAT, NULL);
-	//glTexImage2D(GL_TEXTURE_2D, 2, GL_RGBA, imageWinWidth/4.0, imageWinHeight/4.0, 0,
-	//	GL_RGBA, GL_FLOAT, NULL);
-
-	glGenerateMipmapEXT(GL_TEXTURE_2D);
-	/************************************************************************/
-	/*                                                                      */
-	/************************************************************************/
-
 	glBindTexture(GL_TEXTURE_2D, finalBlurredTex);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, imageWinWidth, imageWinHeight, 0,
 		GL_RGBA, GL_FLOAT, NULL);
-
-	glGenerateMipmapEXT(GL_TEXTURE_2D);
 
 	fbo->attachTexture(originalTexture, GL_COLOR_ATTACHMENT0_EXT, 0);
 	fbo->attachTexture(brightPassTex,	GL_COLOR_ATTACHMENT1_EXT, 0);
@@ -424,10 +343,4 @@ void GlowEffect::init()
 	fbo->attachDepthBuffer( depthBufferId );
 
 	FrameBufferObject::unbind();
-
-	//fbo1->bind();
-	//fbo1->attachTexture(finalBlurredTex, GL_COLOR_ATTACHMENT0_EXT, 0);
-	//fbo1->unbind();
-
-
 }
