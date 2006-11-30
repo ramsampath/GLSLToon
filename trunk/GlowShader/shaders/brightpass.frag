@@ -32,16 +32,15 @@ void main(void)
  */
 float brightPassValue(float luminance, out float alpha)
 {
-	if( luminance > 0.8)
+	if( luminance > 0.7)
 	{
-		alpha = 1.0;
-		return max(luminance * 2.5, 1.0);
+		return max(luminance * 1.2, 1.0);
 	}
 	else
 	{
-		alpha = 0.0;
-		return max(luminance * 0.0, 0.0);
+		return max(luminance * 0.3, 0.0);
 	}
+	alpha = luminance;
 }
 
 /*
