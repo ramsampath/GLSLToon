@@ -82,18 +82,18 @@ void drawGlowSources()
 	glEnable(GL_POLYGON_OFFSET_LINE);
 	glPolygonOffset(1, 1);
 	glCullFace(GL_FRONT);
-	glLineWidth( 10.0 );
+	glLineWidth( 3.0 );
 	glColor3f(0.7f, 0.7f, 1.0f);
 
 	glPushMatrix();
-		glTranslatef(0, 0, -1);
+		glTranslatef(0, 0, -0.8);
 		glRotatef(angle, 1, 1, 0);
-		glutSolidTorus(0.1f, 0.2f, 32, 32);
+		glutSolidTorus(0.12f, 0.22f, 32, 32);
 	glPopMatrix();
 
 	glPushMatrix();
-		glTranslatef(-0.5, -0.5, -1);
-		glutSolidSphere(0.2, 32, 32);
+		glTranslatef(-0.5, -0.5, -0.8);
+		glutSolidSphere(0.22, 32, 32);
 	glPopMatrix();
 
 	glEnable(GL_LIGHTING);
@@ -105,11 +105,11 @@ void drawGlowSources()
 
 void drawScenario()
 {
-	drawGlowSources();
+	//drawGlowSources();
 
 	GLfloat diffuse1[4] = {0.8f, 0, 0, 1.0};
 	GLfloat specular1[4] = {1, 1, 1, 1.0};
-	GLfloat shininess1 = 100;
+	GLfloat shininess1 = 128;
 
 	// materials
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
@@ -124,7 +124,7 @@ void drawScenario()
 
 	GLfloat diffuse2[4] = {0.4f, 0.4f, 1.0, 1.0};
 	GLfloat specular2[4] = {1, 1, 1, 1.0};
-	GLfloat shininess2 = 60;
+	GLfloat shininess2 = 128;
 
 	// materials
 	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse2);
@@ -155,6 +155,48 @@ void showFPS()
 	frames ++;
 }
 
+void drawTMP()
+{
+	glColor3f(1,1,1);
+
+	glPushMatrix();
+	glTranslatef(0.5, 0, -1);
+	glutSolidSphere(0.14, 32, 32);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-0.1, 0, -1);
+	glutSolidSphere(0.1, 32, 32);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-0.4, 0, -1);
+	glutSolidSphere(0.07, 32, 32);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-0.7, 0, -1);
+	glutSolidSphere(0.03, 32, 32);
+	glPopMatrix();
+
+	glPointSize(64.0);
+	glBegin(GL_POINTS);
+	glVertex3f(0.2, 0.0, -1);
+	glEnd();
+
+	glLineWidth(5.0);
+	glBegin(GL_LINES);
+	glVertex3f(-0.2, 0.5, -1);
+	glVertex3f(0.5, 0.5, -1);
+	glEnd();
+
+	glLineWidth(2.0);
+	glBegin(GL_LINES);
+	glVertex3f(-0.2, 0.4, -1);
+	glVertex3f(0.5, 0.4, -1);
+	glEnd();
+}
+
 /**
  */
 void render() 
@@ -162,11 +204,13 @@ void render()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	
-
 	glow.begin();
-		drawScenario();
-		//drawGlowSources();
+		glDisable(GL_LIGHTING);
+		
+		//drawTMP();
+		
+		//drawScenario();
+		drawGlowSources();
 
 	glow.end();
 
