@@ -23,7 +23,7 @@ private:
 
 	void blendTextures(GLuint originalTexId, GLuint finalPassTexId);
 
-	void blurToMipmaps();
+	void blurToMipmaps(GLenum horizontalBuffer, GLenum verticalBuffer, float mipmapLevel, float delta);
 
 private:
 	unsigned int imageWinWidth;
@@ -49,6 +49,8 @@ private:
 	ShaderObject* verticalBlurFragmentShader;
 	ShaderUniformValue<int> textureUniform;
 	ShaderUniformValue<int> blenderTextureUniform;
+	ShaderUniformValue<float> blurDeltaUniform;
+	ShaderUniformValue<float> mipmapLevelUniform;
 	// ########### END SHADERS DECLARATIONS ###########
 
 	// ########### FBO DECLARATIONS ###########
