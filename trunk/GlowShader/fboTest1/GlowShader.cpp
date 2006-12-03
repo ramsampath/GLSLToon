@@ -9,6 +9,8 @@
 #include "ShaderUniformValue.h"
 
 #include "GlowEffect.h"
+#include "CMesh.h"
+#include "3ds.h"
 
 // ################### FPS INFO ######################
 double t0 = 0.0;
@@ -23,12 +25,14 @@ int imageWinHeight = 512;
 float angle = 0;
 
 // the last parameter, 0,  makes it become a directional light
-GLfloat lightDirection[] = {0.0f, 0.2f, 1.0f, 0.0f};
+GLfloat lightDirection[] = {0.0f, 0.8f, 1.0f, 0.0f};
 
 GLfloat diffuse[] = {0.7f, 0.0f, 0.0f, 1.0};
 GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0};
 
 GlowEffect glow;
+CMesh* model;
+CMesh* modelArmature;
 
 
 /**
@@ -82,7 +86,7 @@ void drawGlowSources()
 	glEnable(GL_POLYGON_OFFSET_LINE);
 	glPolygonOffset(1, 1);
 	glCullFace(GL_FRONT);
-	glLineWidth( 3.0 );
+	glLineWidth( 10.0 );
 	glColor3f(0.7f, 0.7f, 1.0f);
 
 	glPushMatrix();
@@ -201,18 +205,59 @@ void drawTMP()
  */
 void render() 
 {
+	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	glow.begin();
-		glDisable(GL_LIGHTING);
-		
-		//drawTMP();
-		
-		//drawScenario();
-		drawGlowSources();
+	//glow.begin();
+		glPushMatrix();
 
-	glow.end();
+			glow.begin();
+			{
+				//GLfloat diffuse[4] = {1, 1, 1, 1.0};
+				//glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+				//glPushMatrix();
+				//	glTranslatef(0,0,-0.5);
+				//	glRotatef(180, 0, 1, 0);
+				//	model->draw();
+				//glPopMatrix();
+				drawScenario();
+			}
+			//glow.end();
+
+			//glow.finish____();
+			//{
+			//	GLfloat diffuse1[4] = {0.5, 0.5, 1.0, 1};
+			//	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
+			//	glPushMatrix();
+			//		glTranslatef(0,0,-0.5);
+			//		glRotatef(180, 0, 1, 0);
+			//		model->draw();
+			//	glPopMatrix();
+			//}
+			glow.renderOriginal();
+
+		glPopMatrix();
+	//	//glDisable(GL_LIGHTING);
+	//	
+	//	//drawTMP();
+	//	//drawScenario();
+	//	//drawGlowSources();
+	//	//glRotatef(angle, 1, 0, 0);
+	//	glPushMatrix();
+	//		glTranslatef(0,0,-0.2);
+	//		glRotatef(angle, 0, 1, 0);
+
+	//		GLfloat diffuse1[4] = {0.5, 0.5, 1.0, 1};
+	//		glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
+	//		model->draw();
+	//		
+	//		//GLfloat diffuse[4] = {1, 1, 1, 1.0};
+	//		//glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	//		//modelArmature->draw();
+	//	glPopMatrix();
+
+	//glow.end();
 
 	showFPS();
 
@@ -220,14 +265,20 @@ void render()
 	/*                                                                      */
 	/************************************************************************/
 	// update the angle: TMP
-	angle += 0.2f;
+	angle += 0.02f;
 
 	if ( angle > 360.0f)
 	{
 		angle -= 360.0f;
 	}
 
-	glutSwapBuffers();
+	//static int s = 0;
+
+	//if (s < 1)
+	//{
+	//	s++;
+		glutSwapBuffers();
+	//}
 }
 
 /**
@@ -243,12 +294,25 @@ void init()
 	// lights
 	glLightfv(GL_LIGHT0, GL_POSITION, lightDirection); // Set light position
 
+	// init glow fx
 	glow.init();
+
+
+	/************************************************************************/
+	/* BUG IN LOADER: não limpa a informação temporária!!!                  */
+	/************************************************************************/
+
+	// init 3d models
+	Load3ds loader;
+	model = loader.Create("../GlowShader/data/Atronach1.3ds");
+	Load3ds loader1;
+	modelArmature = loader1.Create("../GlowShader/data/Atronach_arm2.3ds");
 }
 
 int main(int argc, char *argv[] )  {
 
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
+	/*glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);*/
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	glutInitWindowSize(imageWinWidth, imageWinHeight);
 	glutCreateWindow(argv[0]);
 
