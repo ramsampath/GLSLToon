@@ -7,7 +7,7 @@ void main()
 	float intensity;
 	vec3 light = normalize(vec3(gl_LightSource[0].position));
 	
-	intensity = max( dot(light, normalize(normal)), 0.0);
+	intensity = clamp(dot(light, normalize(normal)), 0.0, 1.0);
 	
 	color = texture2D( toonTexture, vec2(intensity, 0.0) );
 	
