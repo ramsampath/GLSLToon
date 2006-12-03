@@ -28,13 +28,25 @@ GLint lightDirectionLoc;
 GLfloat lightDirection[] = {0.0f, 0.0f, 1.0f, 0.0f};
 
 // rotation angle
-float angle;
+float rotationAngle;
 
-ShaderProgram* shaderProgram;
-ShaderObject* vertexShader;
-ShaderObject* fragmentShader;
+// ############# SHADER STUFF ##################
+ShaderProgram* toonShaderProgram;
+ShaderObject* toonVertexShader;
+ShaderObject* toonFragmentShader;
 
-GLuint textureID;
+ShaderProgram* silhouetteShaderProgram;
+ShaderObject* silhouetteVertexShader;
+ShaderObject* silhouetteFragmentShader;
+// #############################################
+
+// Silhouette width
+float silhouetteWidth = 3.0f;
+
+bool pause = false;
+
+GLuint currentTexIndex;
+GLuint textureIds[2];
 ShaderAttributeValue<int> texAttrib;
 
 /************************************************************************/
@@ -73,20 +85,28 @@ void showFPS();
  */
 void initShaders()
 {
-	vertexShader = new ShaderObject(GL_VERTEX_SHADER, "vertex_shader.vert");
-	fragmentShader = new ShaderObject(GL_FRAGMENT_SHADER, "fragment_shader.frag");
+	toonVertexShader	= new ShaderObject(GL_VERTEX_SHADER, "vertex_shader.vert");
+	toonFragmentShader	= new ShaderObject(GL_FRAGMENT_SHADER, "fragment_shader.frag");
 
-	shaderProgram = new ShaderProgram();
+	silhouetteVertexShader		= new ShaderObject(GL_VERTEX_SHADER, "silhouette.vert");
+	silhouetteFragmentShader	= new ShaderObject(GL_FRAGMENT_SHADER, "silhouette.frag");
+
+	toonShaderProgram		= new ShaderProgram();
+	silhouetteShaderProgram = new ShaderProgram();
 
 	texAttrib.setValue("toonTexture", 0);
 
 	// attach the texture as an uniform variable
-	shaderProgram->addUniformObject( &texAttrib );
+	toonShaderProgram->addUniformObject( &texAttrib );
 
-	shaderProgram->attachShader( *vertexShader );
-	shaderProgram->attachShader( *fragmentShader );
+	toonShaderProgram->attachShader( *toonVertexShader );
+	toonShaderProgram->attachShader( *toonFragmentShader );
 
-	shaderProgram->buildProgram();
+	silhouetteShaderProgram->attachShader( *silhouetteFragmentShader );
+	silhouetteShaderProgram->attachShader( *silhouetteVertexShader );
+
+	toonShaderProgram->buildProgram();
+	silhouetteShaderProgram->buildProgram();
 }
 
 /*
@@ -97,7 +117,7 @@ void init()
 	glEnable(GL_CULL_FACE); // Cull away all back facing polygons
 	glEnable(GL_DEPTH_TEST); // Use the Z buffer
 
-	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+	glClearColor(0.6f, 0.6f, 0.6f, 1.0f);
 
 	// initialize Devil library
 	ilInit();
@@ -106,7 +126,10 @@ void init()
 
 	// loads an image file directly into an OpenGL texture
 	// NOTE: It also ENABLES GL_TEXTURE_2D; and overrides the TexParameter settings
-	textureID = ilutGLLoadImage("gradient2.tga");
+	textureIds[0] = ilutGLLoadImage("gradient1.tga");
+	textureIds[1] = ilutGLLoadImage("gradient2.tga");
+
+	currentTexIndex = 0;
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -118,7 +141,7 @@ void init()
 	// to load correctly the extensions
 	initShaders();
 
-	angle = 0;
+	rotationAngle = 0;
 
 	ReadMesh();
 }
@@ -193,10 +216,11 @@ void drawScene() {
 	// Enable lighting and the LIGHT0 we placed before
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT0);
-	glBindTexture(GL_TEXTURE_2D, textureID);
+	glBindTexture(GL_TEXTURE_2D, textureIds[ currentTexIndex ]);
 
 	glPushMatrix(); // Transforms to animate the object:
-
+		
+		glRotatef(rotationAngle, 0, 1, 0);
 		drawModel();
 
 	glPopMatrix(); // Revert to initial transform
@@ -239,13 +263,35 @@ void display()
 	// Clear the color buffer and the depth buffer.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	shaderProgram->useProgram();
+	toonShaderProgram->useProgram();
+	{
+		// Render with the shaders active.
+		drawScene();
+	}
+	// Deactivate the toon shader.
+	toonShaderProgram->disableProgram();
 
-	// Render with the shaders active.
-	drawScene();
+	// #### Draw the silhouette ####
+	silhouetteShaderProgram->useProgram();
+	{
+		glDisable(GL_LIGHTING);
+		glPolygonMode(GL_BACK, GL_LINE);
+		glEnable(GL_POLYGON_OFFSET_LINE);
+		glPolygonOffset(5, 1);
+		glCullFace(GL_FRONT);
+		glLineWidth( silhouetteWidth );
 
+		// Render with the shaders active.
+		drawScene();
+
+		glEnable(GL_LIGHTING);
+		glDisable(GL_POLYGON_OFFSET_LINE);
+		glPolygonMode(GL_FRONT, GL_FILL);
+		glCullFace(GL_BACK);
+		glLineWidth( 1.0 );
+	}
 	// Deactivate the shaders.
-	shaderProgram->disableProgram();
+	silhouetteShaderProgram->disableProgram();
 
 	glutSwapBuffers();
 }
@@ -256,20 +302,46 @@ void display()
 void anim()
 {
 	// update the rotation angle
-	angle += 0.05f;
-
-	if (angle > 360.0f)
+	if ( !pause )
 	{
-		angle -= 360.0f;
+		rotationAngle += 1.0f;
+		
+		if (rotationAngle > 360.0f)
+		{
+			rotationAngle -= 360.0f;
+		}
 	}
+}
+
+void timerFunc(int value)
+{
 	glutPostRedisplay();
+	anim();
+	glutTimerFunc(value, timerFunc, value);
 }
 
 void keyboard(unsigned char key, int x, int y)
 {
-	if ( (key == 'r') || (key == 'R') )
+	if ( (key == 't') || (key == 'T') )
 	{
-		
+		currentTexIndex = (currentTexIndex + 1) % 2;
+	}
+
+	if ( (key == 'p') || (key == 'P') )
+	{
+		pause = ! pause;
+	}
+
+	// increase silhouette
+	if(key == '+')
+	{
+		silhouetteWidth += 1.0;
+	}
+
+	// decrease silhouette
+	if(key == '-')
+	{
+		silhouetteWidth -= 1.0;
 	}
 }
 
@@ -286,7 +358,8 @@ int main(int argc, char** argv)
 	init();
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
-	glutIdleFunc(anim); 
+	glutTimerFunc(20, timerFunc, 20);
+	//glutIdleFunc(anim); 
 	glutKeyboardFunc(keyboard);
 	glutMainLoop();
 
