@@ -41,12 +41,14 @@ ShaderObject* silhouetteFragmentShader;
 // #############################################
 
 // Silhouette width
-float silhouetteWidth = 3.0f;
+float silhouetteWidth = 5.0f;
 
 bool pause = false;
 
+const int textureCount = 3;
 GLuint currentTexIndex;
-GLuint textureIds[2];
+GLuint textureIds[textureCount];
+char* filenames[textureCount] = {"gradient1.tga", "gradient2.tga", "gradient3.tga"};
 ShaderAttributeValue<int> texAttrib;
 
 /************************************************************************/
@@ -126,16 +128,18 @@ void init()
 
 	// loads an image file directly into an OpenGL texture
 	// NOTE: It also ENABLES GL_TEXTURE_2D; and overrides the TexParameter settings
-	textureIds[0] = ilutGLLoadImage("gradient1.tga");
-	textureIds[1] = ilutGLLoadImage("gradient2.tga");
+	for (int i = 0; i < textureCount; i++)
+	{
+		textureIds[ i ] = ilutGLLoadImage( filenames[ i ] );
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+	}
+	
+	// current texture index
 	currentTexIndex = 0;
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
 	// init shading part: after the window has been created
 	// to load correctly the extensions
@@ -324,7 +328,7 @@ void keyboard(unsigned char key, int x, int y)
 {
 	if ( (key == 't') || (key == 'T') )
 	{
-		currentTexIndex = (currentTexIndex + 1) % 2;
+		currentTexIndex = (currentTexIndex + 1) % textureCount;
 	}
 
 	if ( (key == 'p') || (key == 'P') )
