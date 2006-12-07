@@ -33,8 +33,6 @@ me interested in all this.
 **************************************************************************
 */
 
-
-
 #include "3ds.h"
 #include <stdlib.h>
 #include <string.h>
@@ -42,10 +40,6 @@ me interested in all this.
 #include <assert.h>
 
 #include "CMesh.h"
-
-
-// Global instance of loader
-Load3ds gLoad3ds;
 
 Load3ds::Load3ds()
 {
@@ -69,7 +63,6 @@ Load3ds::~Load3ds()
 
 CMesh* Load3ds::Create(char * aFilename)
 {
-	int lBytesRead = 0;
 	mCurrentChunk = new Chunk;
 
 	mFile = fopen(aFilename, "rb");
@@ -91,12 +84,11 @@ CMesh* Load3ds::Create(char * aFilename)
 	return this->mMesh;
 }
 
-
 int Load3ds::CleanUp()
 {
 
 	fclose(mFile);
-	delete [] mBuffer;
+	delete[] static_cast<unsigned char*>(mBuffer);
 	delete mCurrentChunk;
 	
 /*
@@ -112,7 +104,8 @@ else you choose to add
 int Load3ds::ProcessNextChunk(Chunk * aPreviousChunk)
 {
 	mCurrentChunk = new Chunk;
-
+	size_t numberOfBytesRead;
+	
 	while (aPreviousChunk->mBytesRead < aPreviousChunk->mLength)
 	{
 		// Read next chunk
@@ -122,7 +115,13 @@ int Load3ds::ProcessNextChunk(Chunk * aPreviousChunk)
 		{
 		case VERSION:
 			// Check version (must be 3 or less)
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+			{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+			}
+#endif		
 			if (*(unsigned short *) mBuffer > 0x03)
 				exit(1107);
 			break;
@@ -134,8 +133,16 @@ int Load3ds::ProcessNextChunk(Chunk * aPreviousChunk)
 
 		case EDIT3DS:
 			// Check mesh version, then proceed to mesh loading function			
+			
 			ReadChunk(mTempChunk);
-			mTempChunk->mBytesRead += fread(mBuffer, 1, mTempChunk->mLength - mTempChunk->mBytesRead, mFile);
+			
+			mTempChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mTempChunk->mLength - mTempChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif	
 			mCurrentChunk->mBytesRead += mTempChunk->mBytesRead;
 			if (mTempChunk->mID != MESHVERSION || *(unsigned short *)mBuffer > 0x03)
 				exit(1107);
@@ -153,7 +160,13 @@ int Load3ds::ProcessNextChunk(Chunk * aPreviousChunk)
 			break;
 
 		default:  // unrecognized/unsupported chunk
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif	
 			break;
 		}
 
@@ -170,6 +183,7 @@ int Load3ds::ProcessNextChunk(Chunk * aPreviousChunk)
 int Load3ds::ProcessNextObjectChunk(Chunk * aPreviousChunk)
 {
 	mCurrentChunk = new Chunk;
+	size_t numberOfBytesRead;
 
 	while (aPreviousChunk->mBytesRead < aPreviousChunk->mLength)
 	{
@@ -202,7 +216,13 @@ int Load3ds::ProcessNextObjectChunk(Chunk * aPreviousChunk)
 			break;
 
 		default:  // unrecognized/unsupported chunk
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif
 			break;
 		}
 
@@ -219,7 +239,8 @@ int Load3ds::ProcessNextObjectChunk(Chunk * aPreviousChunk)
 int Load3ds::ProcessNextMaterialChunk(Chunk * aPreviousChunk)
 {
 	mCurrentChunk = new Chunk;
-
+	size_t numberOfBytesRead;
+	
 	while (aPreviousChunk->mBytesRead < aPreviousChunk->mLength)
 	{
 		ReadChunk(mCurrentChunk);
@@ -227,7 +248,13 @@ int Load3ds::ProcessNextMaterialChunk(Chunk * aPreviousChunk)
 		switch (mCurrentChunk->mID)
 		{
 		case MATNAME:
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif
 			break;
 
 		case MATLUMINANCE:
@@ -252,12 +279,18 @@ int Load3ds::ProcessNextMaterialChunk(Chunk * aPreviousChunk)
 			break;
 
 		case MATMAPFILE:
-			mCurrentChunk->mBytesRead += fread((char *)mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread((char *)mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
 			// mBuffer now contains the filename of the next texture; load it if you wish
 			break;
 		
 		default:  // unrecognized/unsupported chunk
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif	
 			break;
 		}
 
@@ -274,7 +307,7 @@ int Load3ds::ProcessNextMaterialChunk(Chunk * aPreviousChunk)
 int Load3ds::ProcessNextKeyFrameChunk(Chunk * aPreviousChunk)
 {
 	mCurrentChunk = new Chunk;
-
+	size_t numberOfBytesRead;
 	short int lCurrentID, lCurrentParentID;
 	
 	while (aPreviousChunk->mBytesRead < aPreviousChunk->mLength)
@@ -288,7 +321,10 @@ int Load3ds::ProcessNextKeyFrameChunk(Chunk * aPreviousChunk)
 			break;
 
 		case KFHEIRARCHY:
-			mCurrentChunk->mBytesRead += fread(&lCurrentID, 1, 2, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(&lCurrentID, 1, 2, mFile);
+#ifdef __BIG_ENDIAN__
+			lCurrentID = OSReadSwapInt16(&lCurrentID,0);
+#endif
 			// lCurrentID now contains the ID of the current object being described
 			//  Save this if you want to support an object hierarchy
 			break;
@@ -297,15 +333,30 @@ int Load3ds::ProcessNextKeyFrameChunk(Chunk * aPreviousChunk)
 			mCurrentChunk->mBytesRead += GetString((char *)mBuffer);
 			// mBuffer now contains the name of the object whose KF info will
 			//   be described
-
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, 4, mFile);  // useless, ignore
-			mCurrentChunk->mBytesRead += fread(&lCurrentParentID, 1, 2, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, 4, mFile);  // useless, ignore
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif				
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(&lCurrentParentID, 1, 2, mFile);
+#ifdef __BIG_ENDIAN__
+			lCurrentParentID = OSReadSwapInt16(&lCurrentParentID,0);
+#endif				
+			
 			// lCurrentParentID now contains the ID of the parent of the current object 
 			// being described
 			break;
 
 		default:  // unrecognized/unsupported chunk
-			mCurrentChunk->mBytesRead += fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+			mCurrentChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, mCurrentChunk->mLength - mCurrentChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+			for (int i = 0; i < numberOfBytesRead; i++)
+				{
+				static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+				}
+#endif	
 			break;
 		}
 
@@ -321,7 +372,6 @@ int Load3ds::ProcessNextKeyFrameChunk(Chunk * aPreviousChunk)
 
 int Load3ds::GetString(char * aBuffer)
 {
-	unsigned int lBytesRead = 0;
 	int index = 0;
 
 	fread(aBuffer, 1, 1, mFile);
@@ -337,15 +387,26 @@ int Load3ds::ReadChunk(Chunk * aChunk)
 {
 	aChunk->mBytesRead = fread(&aChunk->mID, 1, 2, mFile);
 	aChunk->mBytesRead += fread(&aChunk->mLength, 1, 4, mFile);
-
+#ifdef __BIG_ENDIAN__
+	aChunk->mID = OSReadSwapInt16(&aChunk->mID,0);
+	aChunk->mLength = OSReadSwapInt32(&aChunk->mLength,0);
+#endif
+	
 	return 1;
 }
 
 
 int Load3ds::ReadColorChunk(Chunk * aChunk, float * aVector)
 {
+	size_t numberOfBytesRead;
 	ReadChunk(mTempChunk);
-	mTempChunk->mBytesRead += fread(mBuffer, 1, mTempChunk->mLength - mTempChunk->mBytesRead, mFile);
+	mTempChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1,mTempChunk->mLength - mTempChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+	for (int i = 0; i < numberOfBytesRead; i++)
+		{
+		static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+		}
+#endif	
 
 	aChunk->mBytesRead += mTempChunk->mBytesRead;
 	return 1;
@@ -354,8 +415,17 @@ int Load3ds::ReadColorChunk(Chunk * aChunk, float * aVector)
 
 int Load3ds::ReadPercentChunk(Chunk * aChunk, float * aPercent)
 {
+	size_t numberOfBytesRead;
+	
 	ReadChunk(mTempChunk);
-	mTempChunk->mBytesRead += fread(mBuffer, 1, mTempChunk->mLength - mTempChunk->mBytesRead, mFile);
+	mTempChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1,mTempChunk->mLength - mTempChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+	for (int i = 0; i < numberOfBytesRead; i++)
+		{
+		static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+		}
+#endif	
+	
 	*aPercent = (float) *((short int *) mBuffer) / 100.0f;
 
 	aChunk->mBytesRead += mTempChunk->mBytesRead;
@@ -365,37 +435,53 @@ int Load3ds::ReadPercentChunk(Chunk * aChunk, float * aPercent)
 
 int Load3ds::FillIndexBuffer(Chunk * aPreviousChunk)
 {
-	unsigned short int lNumFaces;
-	aPreviousChunk->mBytesRead += fread(&lNumFaces, 1, 2, mFile);
-	aPreviousChunk->mBytesRead += fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+	size_t numberOfBytesRead;
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(&mModelData->mFaceCount, 1, 2, mFile);
+#ifdef __BIG_ENDIAN__
+	mModelData->mFaceCount = OSReadSwapInt16(&mModelData->mFaceCount,0);
+#endif
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+
+#ifdef __BIG_ENDIAN__	
+	for (int i=0;i<mModelData->mFaceCount*4;++i)
+	{
+		static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+	}	
+#endif
 
 	// allocate space for the vertices in the temporary object, and read that information
 	// Each face has three indices, corresponding to each face vertex
-	mModelData->mFaces = static_cast<int*>( malloc( lNumFaces * sizeof( int ) * 3 ) );
-	mModelData->mFaceCount = lNumFaces;
+	mModelData->mFaces = static_cast<int*>( malloc( mModelData->mFaceCount * sizeof( int ) * 3 ) );
 	
 	// j is used because we skip the edge flag :P
 	// copy just the edges indices and skip the edge flags
 	int j = 0;
-	for (int i = 0; i < lNumFaces * 4; i+=4, j+=3)
+	for (int i = 0; i < mModelData->mFaceCount * 4; i+=4, j+=3)
 	{
 		mModelData->mFaces[ j ] = (static_cast<unsigned short int*>( mBuffer ))[i];
 		mModelData->mFaces[ j+1 ] = (static_cast<unsigned short int*>( mBuffer ))[i+1];
 		mModelData->mFaces[ j+2 ] = (static_cast<unsigned short int*>( mBuffer ))[i+2];
 	}
 
+#ifdef GRAPHICS_DEBUG
+	// the * 3 is temporary
+	FILE* file = NULL;
+	file = fopen("faces.out", "w+");
+	assert( file );
 
-	//for (int i = 0, j = 0; i < lNumFaces * 4; i+=4, j+=3)
-	//{
-	//	printf("### Face - X:%d Y:%d Z:%d\n", (static_cast<unsigned short int*>( mBuffer ))[i],
-	//		(static_cast<unsigned short int*>( mBuffer ))[i+1],
-	//		(static_cast<unsigned short int*>( mBuffer ))[i+2]);
-	//	printf("@@@ Face - X:%d Y:%d Z:%d\n", mModelData->mFaces[ j ],
-	//		mModelData->mFaces[ j+1 ],
-	//		mModelData->mFaces[ j+2 ]);
-	//	printf("Mask %d: %d\n", i, (static_cast<unsigned short int*>( mBuffer )[i + 3]));
-	//}
-
+	for (int i = 0, j = 0; i < mModelData->mFaceCount * 4; i+=4, j+=3)
+	{
+		fprintf(file, "BUF Face - X:%d Y:%d Z:%d F:%d\n", (static_cast<unsigned short int*>( mBuffer ))[i],
+			(static_cast<unsigned short int*>( mBuffer ))[i+1],
+			(static_cast<unsigned short int*>( mBuffer ))[i+2],
+			(static_cast<unsigned short int*>( mBuffer ))[i+3]);
+		fprintf(file, "MOD Face - X:%d Y:%d Z:%d\n", mModelData->mFaces[ j ],
+			mModelData->mFaces[ j+1 ],
+			mModelData->mFaces[ j+2 ]);
+		//fprintf(file, "Mask %d: %d\n", i, (static_cast<unsigned short int*>( mBuffer )[i + 3]));
+	}
+	fclose( file );
+#endif
 	/* 
 	 * mBuffer now contains an array of indices (unsigned short ints)
 	 * Careful, the list consists of 3 vertex indices and then an edge
@@ -409,15 +495,26 @@ int Load3ds::FillIndexBuffer(Chunk * aPreviousChunk)
 
 int Load3ds::SortIndicesByMaterial(Chunk * aPreviousChunk)
 {
+	size_t numberOfBytesRead;
 	unsigned short int lNumFaces;
+	
 	aPreviousChunk->mBytesRead += GetString((char *) mBuffer);
 	// mBuffer contains the name of the material that is associated
 	//  with the following triangles (set of 3 indices which index into the vertex list
 	//  of the current object chunk)
 
-	aPreviousChunk->mBytesRead += fread(&lNumFaces, 1, 2, mFile);
-
-	aPreviousChunk->mBytesRead += fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(&lNumFaces, 1, 2, mFile);	
+#ifdef __BIG_ENDIAN__
+	lNumFaces = OSReadSwapInt16(&lNumFaces,0);
+#endif	
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+	for (int i = 0; i < numberOfBytesRead; i++)
+		{
+		static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+		}
+#endif	
+	
 	// mBuffer now contains a list of triangles that use the material specified above
 
 	return 1;
@@ -426,17 +523,34 @@ int Load3ds::SortIndicesByMaterial(Chunk * aPreviousChunk)
 
 int Load3ds::FillTexCoordBuffer(Chunk * aPreviousChunk)
 {
+	size_t numberOfBytesRead;
 	unsigned short lNumTexCoords;
-	aPreviousChunk->mBytesRead += fread(&lNumTexCoords, 1, 2, mFile);
-	//aPreviousChunk->mBytesRead += fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(&lNumTexCoords, 1, 2, mFile);
+#ifdef __BIG_ENDIAN__
+	lNumTexCoords = OSReadSwapInt16(&lNumTexCoords,0);
+#endif	
+	
+//	aPreviousChunk->mBytesRead += size = fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+//#ifdef __BIG_ENDIAN__
+//	for (int i = 0; i < size ;i++)
+//		{
+//		static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+//		}
+//#endif		
 
 	// allocate space for the vertices in the temporary object, and read that information
 	mModelData->mTexCoords = static_cast<float*>( malloc( aPreviousChunk->mLength - aPreviousChunk->mBytesRead ) );
 
 	// read the information into the object
-	aPreviousChunk->mBytesRead += fread(mModelData->mTexCoords, 1, 
-		aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
-
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(mModelData->mTexCoords, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+	for (int i=0;i<lNumTexCoords*2;i++)
+	{
+		*((long*)&mModelData->mTexCoords[i]) = OSReadSwapInt32(&mModelData->mTexCoords[i],0);
+	}
+#endif
+	
 	mModelData->mContainsTexCoords = true;
 
 	// mBuffer now contains a list of UV coordinates (2 floats)
@@ -447,16 +561,33 @@ int Load3ds::FillTexCoordBuffer(Chunk * aPreviousChunk)
 
 int Load3ds::FillVertexBuffer(Chunk * aPreviousChunk)
 {
-	unsigned short lNumVertices;
-	aPreviousChunk->mBytesRead += fread(&lNumVertices, 1, 2, mFile);
-	//aPreviousChunk->mBytesRead += fread(mBuffer, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+	size_t numberOfBytesRead;
+	
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(&mModelData->mVertexCount, 1, 2, mFile);
+#ifdef __BIG_ENDIAN__
+	mModelData->mVertexCount = OSReadSwapInt16(&mModelData->mVertexCount,0);
+#endif	
 
+	
+//	size = aPreviousChunk->mLength - aPreviousChunk->mBytesRead;
+//	aPreviousChunk->mBytesRead += size = fread(mBuffer, 1,aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+//#ifdef __BIG_ENDIAN__
+//	for (int i = 0; i < size ;i++)
+//		{
+//		static_cast<short *>(mBuffer)[i] = OSReadSwapInt16(&static_cast<short*>(mBuffer)[i],0);
+//		}
+//#endif	
 	// allocate space for the vertices in the temporary object, and read that information
 	mModelData->mVertices = static_cast<float*>( malloc( aPreviousChunk->mLength - aPreviousChunk->mBytesRead ) );
 
 	// read the information into the object
-	aPreviousChunk->mBytesRead += fread(mModelData->mVertices, 1, 
-		aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+	aPreviousChunk->mBytesRead += numberOfBytesRead = fread(mModelData->mVertices, 1, aPreviousChunk->mLength - aPreviousChunk->mBytesRead, mFile);
+#ifdef __BIG_ENDIAN__
+	for (int i=0;i<mModelData->mVertexCount * 3;i++)
+	{
+		*((long*)&mModelData->mVertices[i]) = OSReadSwapInt32(&mModelData->mVertices[i],0);
+	}
+#endif
 	
 	// mModelData->mVertices now contains a list of vertex coordinates (3 floats)
 
@@ -465,7 +596,7 @@ int Load3ds::FillVertexBuffer(Chunk * aPreviousChunk)
 	FILE* file = NULL;
 	file = fopen("vertices.out", "w+");
 	assert( file );
-	for (int i = 0; i < lNumVertices * 3; i+=3)
+	for (int i = 0; i < mModelData->mVertexCount * 3; i+=3)
 	{
 		fprintf(file, "%d: X: %f, Y: %f, Z: %f\n", i/3, mModelData->mVertices[i], mModelData->mVertices[i+1], 
 			mModelData->mVertices[i+2]);
@@ -508,12 +639,16 @@ int Load3ds::ComputeNormals()
 {
 	// use calloc to initialize the space to zeroes so we don't need 
 	// to 'clean' the normals before we compute them
-	mModelData->mNormals = static_cast<float*>( calloc(mModelData->mFaceCount * 3, sizeof( float )) );
+	// NOTE: Allocate as much space for the normals as we do for the
+	// vertices, so, VertexCount * 3 floats
+	mModelData->mNormals = static_cast<float*>( calloc(mModelData->mVertexCount * 3, sizeof( float )) );
 
-	// the vertices indices
+	// the vertices indices: a, b and c
 	int a, b, c;
 	float ab[3], bc[3], normal[3];
-	for (int i = 0; i < mModelData->mFaceCount; i+=3)
+	
+	// iterate through all the faces * 3 indices
+	for (int i = 0; i < mModelData->mFaceCount * 3; i+=3)
 	{
 		a = mModelData->mFaces[ i ];
 		b = mModelData->mFaces[i + 1];
@@ -538,6 +673,8 @@ int Load3ds::ComputeNormals()
 		
 		CrossProduct(ab, bc, normal);
 		
+		// add the normal to each vertex's normal
+		// at the end just normalize it
 		for (int j = 0; j < 3; j++)
 		{
 			mModelData->mNormals[a + j] += normal[ j ];
@@ -547,7 +684,7 @@ int Load3ds::ComputeNormals()
 	}
 
 	// Now, do a second pass by the vertices and normalize the normals
-	for (int i = 0; i < mModelData->mFaceCount; i+=3)
+	for (int i = 0; i < mModelData->mVertexCount * 3; i+=3)
 	{
 		Normalize( &mModelData->mNormals[ i ] );
 	}
@@ -558,12 +695,27 @@ int Load3ds::ComputeNormals()
 
 int Load3ds::CompileObjects()
 {
+#ifdef GRAPHICS_DEBUG
+	FILE* file = NULL;
+	file = fopen("normals.out", "w+");
+	assert( file );
+#endif
+
 	int j = 0;
 	TVector3<float> position, normal;
 	TVector2<float> texCoord;
-	for (int i = 0; i < mModelData->mFaceCount; i++)
+
+	// the number of faces * 3: 3 indices per face
+	for (int i = 0; i < mModelData->mFaceCount * 3; i+=3)
 	{
-		// stride: one face -> 3 positions/normals
+		mMesh->addTriangleIndices(mModelData->mFaces[ i ], 
+			mModelData->mFaces[i + 1], mModelData->mFaces[i + 2]);
+	}
+
+	// set up all the information: position, normal and eventually
+	// the texture coordinates, and compile them into our TVertex class
+	for (int i = 0; i < mModelData->mVertexCount; i++)
+	{
 		j = i * 3;
 
 		position.setX( mModelData->mVertices[ j ] );
@@ -574,9 +726,11 @@ int Load3ds::CompileObjects()
 		normal.setY( mModelData->mNormals[j + 1] );
 		normal.setZ( mModelData->mNormals[j + 2] );
 
-		mMesh->addTriangleIndices(mModelData->mFaces[ j ], 
-			mModelData->mFaces[j + 1], mModelData->mFaces[j + 2]);
-		
+#ifdef GRAPHICS_DEBUG
+		fprintf(file, "%i: X: %f, Y: %f, Z: %f\n", i, normal.x(), normal.y(), 
+			normal.z());
+#endif
+
 		if ( mModelData->mContainsTexCoords )
 		{
 			// stride: one face -> 2 texture coordinates
@@ -588,6 +742,10 @@ int Load3ds::CompileObjects()
 
 		mMesh->addVertex( TVertex(normal, position, texCoord) );
 	}
+
+#ifdef GRAPHICS_DEBUG
+	fclose( file );
+#endif
 
 	return 1;
 }
