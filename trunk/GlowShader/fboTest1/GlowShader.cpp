@@ -22,7 +22,7 @@ char titlestring[200];
 int imageWinWidth = 512;
 int imageWinHeight = 512;
 
-float angle = 0;
+float rotationAngle = 0;
 
 // the last parameter, 0,  makes it become a directional light
 GLfloat lightDirection[] = {0.0f, 0.8f, 1.0f, 0.0f};
@@ -32,8 +32,6 @@ GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0};
 
 GlowEffect glow;
 CMesh* model;
-CMesh* modelArmature;
-
 
 /**
  * @param w
@@ -91,7 +89,7 @@ void drawGlowSources()
 
 	glPushMatrix();
 		glTranslatef(0, 0, -0.8);
-		glRotatef(angle, 1, 1, 0);
+		glRotatef(rotationAngle, 1, 1, 0);
 		glutSolidTorus(0.12f, 0.22f, 32, 32);
 	glPopMatrix();
 
@@ -121,8 +119,14 @@ void drawScenario()
 	glMaterialf(GL_FRONT, GL_SHININESS, shininess1);
 
 	glPushMatrix();
-		glTranslatef(0, 0, -1);
-		glRotatef(angle, 1, 1, 0);
+		glTranslatef(0.4f, 0, -1);
+		glRotatef(rotationAngle, 1, 0, 0);
+		glutSolidTorus(0.1f, 0.2f, 32, 32);
+	glPopMatrix();
+
+	glPushMatrix();
+		glTranslatef(-0.4f, 0, -1);
+		glRotatef(-rotationAngle, 1, 0, 0);
 		glutSolidTorus(0.1f, 0.2f, 32, 32);
 	glPopMatrix();
 
@@ -205,59 +209,44 @@ void drawTMP()
  */
 void render() 
 {
-	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0);
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//glow.begin();
+	
+	glow.beginGlowSource();
 		glPushMatrix();
+			glTranslatef(0, 0, -0.5);
+			glRotatef(rotationAngle, 0, 1, 0);
 
-			glow.begin();
-			{
-				//GLfloat diffuse[4] = {1, 1, 1, 1.0};
-				//glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-				//glPushMatrix();
-				//	glTranslatef(0,0,-0.5);
-				//	glRotatef(180, 0, 1, 0);
-				//	model->draw();
-				//glPopMatrix();
-				drawScenario();
-			}
-			//glow.end();
+			glDisable(GL_LIGHTING);
+			glPolygonMode(GL_FRONT, GL_LINE);
+			glEnable(GL_POLYGON_OFFSET_LINE);
+			glPolygonOffset(10, 1);
+			glLineWidth( 6.0 );
+			glColor3f(1, 1, 1);
 
-			//glow.finish____();
-			//{
-			//	GLfloat diffuse1[4] = {0.5, 0.5, 1.0, 1};
-			//	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
-			//	glPushMatrix();
-			//		glTranslatef(0,0,-0.5);
-			//		glRotatef(180, 0, 1, 0);
-			//		model->draw();
-			//	glPopMatrix();
-			//}
-			glow.renderOriginal();
+			// Render with the shaders active.
+			model->draw();
 
+			glDisable(GL_POLYGON_OFFSET_LINE);
+			glPolygonMode(GL_FRONT, GL_FILL);
+			glLineWidth( 1.0 );
+			
+			glColor3f(0, 0, 0);
+			model->draw();
+
+			glEnable(GL_LIGHTING);
 		glPopMatrix();
-	//	//glDisable(GL_LIGHTING);
-	//	
-	//	//drawTMP();
-	//	//drawScenario();
-	//	//drawGlowSources();
-	//	//glRotatef(angle, 1, 0, 0);
-	//	glPushMatrix();
-	//		glTranslatef(0,0,-0.2);
-	//		glRotatef(angle, 0, 1, 0);
+	glow.endGlowSource();
 
-	//		GLfloat diffuse1[4] = {0.5, 0.5, 1.0, 1};
-	//		glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
-	//		model->draw();
-	//		
-	//		//GLfloat diffuse[4] = {1, 1, 1, 1.0};
-	//		//glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
-	//		//modelArmature->draw();
-	//	glPopMatrix();
-
-	//glow.end();
+	glow.beginOriginal();
+		GLfloat diffuse1[4] = {0.5, 0.5, 1.0, 1};
+		glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
+		glPushMatrix();
+			glTranslatef(0,0,-0.5);
+			glRotatef(rotationAngle, 0, 1, 0);
+			model->draw();
+		glPopMatrix();
+	glow.finishOriginal();
 
 	showFPS();
 
@@ -265,20 +254,14 @@ void render()
 	/*                                                                      */
 	/************************************************************************/
 	// update the angle: TMP
-	angle += 0.02f;
+	rotationAngle += 0.2f;
 
-	if ( angle > 360.0f)
+	if ( rotationAngle > 360.0f)
 	{
-		angle -= 360.0f;
+		rotationAngle -= 360.0f;
 	}
-
-	//static int s = 0;
-
-	//if (s < 1)
-	//{
-	//	s++;
-		glutSwapBuffers();
-	//}
+	
+	glutSwapBuffers();
 }
 
 /**
@@ -297,22 +280,14 @@ void init()
 	// init glow fx
 	glow.init();
 
-
-	/************************************************************************/
-	/* BUG IN LOADER: não limpa a informação temporária!!!                  */
-	/************************************************************************/
-
 	// init 3d models
 	Load3ds loader;
 	model = loader.Create("../GlowShader/data/Atronach1.3ds");
-	Load3ds loader1;
-	modelArmature = loader1.Create("../GlowShader/data/Atronach_arm2.3ds");
 }
 
 int main(int argc, char *argv[] )  {
 
-	/*glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);*/
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 	glutInitWindowSize(imageWinWidth, imageWinHeight);
 	glutCreateWindow(argv[0]);
 
