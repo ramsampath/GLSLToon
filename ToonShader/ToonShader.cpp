@@ -15,6 +15,9 @@
 #include "ShaderObject.h"
 #include "ShaderProgram.h"
 
+#include "CMesh.h"
+#include "3ds.h"
+
 /************************************************************************/
 /* PROGRAM GLOBAL VARIABLES                                             */
 /************************************************************************/
@@ -25,7 +28,7 @@ char titlestring[200];
 GLint lightDirectionLoc;
 
 // the last parameter, 0,  makes it become a directional light
-GLfloat lightDirection[] = {0.0f, 0.0f, 1.0f, 0.0f};
+GLfloat lightDirection[] = {0.0f, 0.6f, 1.0f, 0.0f};
 
 // rotation angle
 float rotationAngle;
@@ -35,13 +38,11 @@ ShaderProgram* toonShaderProgram;
 ShaderObject* toonVertexShader;
 ShaderObject* toonFragmentShader;
 
-ShaderProgram* silhouetteShaderProgram;
-ShaderObject* silhouetteVertexShader;
-ShaderObject* silhouetteFragmentShader;
+ShaderAttributeValue<int> texAttrib;
 // #############################################
 
 // Silhouette width
-float silhouetteWidth = 5.0f;
+float silhouetteWidth = 7.0f;
 
 bool pause = false;
 
@@ -49,38 +50,25 @@ const int textureCount = 3;
 GLuint currentTexIndex;
 GLuint textureIds[textureCount];
 char* filenames[textureCount] = {"gradient1.tga", "gradient2.tga", "gradient3.tga"};
-ShaderAttributeValue<int> texAttrib;
 
-/************************************************************************/
-/*                                                                      */
-/************************************************************************/
-typedef struct tagVECTOR										// A Structure To Hold A Single Vector ( NEW )
-{
-	float X, Y, Z;												// The Components Of The Vector ( NEW )
-}
-VECTOR;
+// ############# 3D MODELS ##################
+CMesh* models[3];
+const int modelCount = 3;
+GLuint currentModelIndex = 0;
 
-typedef struct tagVERTEX										// A Structure To Hold A Single Vertex ( NEW )
-{
-	VECTOR Nor;													// Vertex Normal ( NEW )
-	VECTOR Pos;													// Vertex Position ( NEW )
-}
-VERTEX;
+// ############# TRACKBALL ATTRIBUTES ##################
+GLfloat xRot = 0;
+GLfloat yRot = 0;
+GLfloat xRotOld = 0;
+GLfloat yRotOld = 0;
+int mouseState = 0;
+int xCenter = 0;
+int yCenter = 0;
 
-typedef struct tagPOLYGON										// A Structure To Hold A Single Polygon ( NEW )
-{
-	VERTEX Verts[3];											// Array Of 3 VERTEX Structures ( NEW )
-}
-POLYGON;
+#define M_ROTATE_XY     1
 
-POLYGON		*polyData		= NULL;
-int			polyNum			= 0;
-
-BOOL ReadMesh();
+// ############# METHODS HEADERS ##################
 void showFPS();
-/************************************************************************/
-/*                                                                      */
-/************************************************************************/
 
 /*
  * Initializes the program shaders	
@@ -90,11 +78,7 @@ void initShaders()
 	toonVertexShader	= new ShaderObject(GL_VERTEX_SHADER, "vertex_shader.vert");
 	toonFragmentShader	= new ShaderObject(GL_FRAGMENT_SHADER, "fragment_shader.frag");
 
-	silhouetteVertexShader		= new ShaderObject(GL_VERTEX_SHADER, "silhouette.vert");
-	silhouetteFragmentShader	= new ShaderObject(GL_FRAGMENT_SHADER, "silhouette.frag");
-
 	toonShaderProgram		= new ShaderProgram();
-	silhouetteShaderProgram = new ShaderProgram();
 
 	texAttrib.setValue("toonTexture", 0);
 
@@ -104,11 +88,7 @@ void initShaders()
 	toonShaderProgram->attachShader( *toonVertexShader );
 	toonShaderProgram->attachShader( *toonFragmentShader );
 
-	silhouetteShaderProgram->attachShader( *silhouetteFragmentShader );
-	silhouetteShaderProgram->attachShader( *silhouetteVertexShader );
-
 	toonShaderProgram->buildProgram();
-	silhouetteShaderProgram->buildProgram();
 }
 
 /*
@@ -120,6 +100,8 @@ void init()
 	glEnable(GL_DEPTH_TEST); // Use the Z buffer
 
 	glClearColor(0.6f, 0.6f, 0.6f, 1.0f);
+
+	glLightfv(GL_LIGHT0, GL_POSITION, lightDirection); // Set light position
 
 	// initialize Devil library
 	ilInit();
@@ -147,7 +129,11 @@ void init()
 
 	rotationAngle = 0;
 
-	ReadMesh();
+	Load3ds loader3DS;
+
+	models[0] = loader3DS.Create("./data/Tie-Fighter.3ds");
+	models[1] = loader3DS.Create("./data/Atronach.3ds");
+	models[2] = loader3DS.Create("./data/Mephisto.3ds");
 }
 
 /*
@@ -165,73 +151,19 @@ void reshape(int w, int h)
 }
 
 /************************************************************************/
-/* READS A 3D MODEL: from NeHe Lesson 37                               */
-/************************************************************************/
-void drawModel()
-{
-	float normal[3];
-	glBegin (GL_TRIANGLES);										// Tell OpenGL That We're Drawing Triangles
-
-	for (int i = 0; i < polyNum; i++)							// Loop Through Each Polygon ( NEW )
-	{
-		for (int j = 0; j < 3; j++)								// Loop Through Each Vertex ( NEW )
-		{
-			normal[0] = polyData[i].Verts[j].Nor.X;		// Fill Up The TmpNormal Structure With
-			normal[1] = polyData[i].Verts[j].Nor.Y;		// The Current Vertices' Normal Values ( NEW )
-			normal[2] = polyData[i].Verts[j].Nor.Z;
-
-			glNormal3fv(normal);
-
-			//glTexCoord1f (TmpShade);						// Set The Texture Co-ordinate As The Shade Value ( NEW )
-			glVertex3fv (&polyData[i].Verts[j].Pos.X);		// Send The Vertex Position ( NEW )
-		}
-	}
-
-	glEnd ();	
-}
-
-BOOL ReadMesh ()												// Reads The Contents Of The "model.txt" File ( NEW )
-{
-	FILE *In = fopen ("model.txt", "rb");					// Open The File ( NEW )
-
-	if (!In)
-		return FALSE;											// Return FALSE If File Not Opened ( NEW )
-
-	fread (&polyNum, sizeof (int), 1, In);						// Read The Header (i.e. Number Of Polygons) ( NEW )
-
-	polyData = new POLYGON [polyNum];							// Allocate The Memory ( NEW )
-
-	fread (&polyData[0], sizeof (POLYGON) * polyNum, 1, In);	// Read In All Polygon Data ( NEW )
-
-	fclose (In);												// Close The File ( NEW )
-
-	return TRUE;												// It Worked ( NEW )
-}
-
-/************************************************************************/
 /*                                                                      */
 /************************************************************************/
 /*
 * drawScene(float t) - the actual drawing commands to render our scene.
 */
 void drawScene() {
-	glLightfv(GL_LIGHT0, GL_POSITION, lightDirection); // Set light position
-
-	// Enable lighting and the LIGHT0 we placed before
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glBindTexture(GL_TEXTURE_2D, textureIds[ currentTexIndex ]);
 
 	glPushMatrix(); // Transforms to animate the object:
 		
 		glRotatef(rotationAngle, 0, 1, 0);
-		drawModel();
+		models[ currentModelIndex ]->draw();
 
 	glPopMatrix(); // Revert to initial transform
-
-	// Disable lighting again, to prepare for next frame.
-	glDisable(GL_LIGHTING);
-	glDisable(GL_LIGHT0);
 
 	showFPS();
 }
@@ -256,6 +188,67 @@ void showFPS()
 	frames ++;
 }
 
+void mouse(int button, int state, int x, int y) {
+	xCenter = x;
+	yCenter = y;
+
+	if (state == GLUT_DOWN) {
+		if (button == GLUT_LEFT_BUTTON) {
+			mouseState = M_ROTATE_XY;
+			xRotOld = xRot;
+			yRotOld = yRot;
+		}
+	} else {
+		mouseState = 0;
+	}
+}
+
+void motion(int x, int y) {
+	if (mouseState == M_ROTATE_XY) {
+		xRot = xRotOld + (float)(y - yCenter) / 4.0;
+		yRot = yRotOld + (float)(x - xCenter) / 4.0;
+	}
+}
+
+/**
+ * @description shade the scene using toon shade style
+ */
+void toonShade()
+{
+	// Enable lighting and the LIGHT0 we placed before
+	glEnable(GL_LIGHTING | GL_LIGHT0 | GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, textureIds[ currentTexIndex ]);
+
+	toonShaderProgram->useProgram();
+	{
+		// Render with the shaders active.
+		drawScene();
+	}
+	// Deactivate the toon shader.
+	toonShaderProgram->disableProgram();
+
+	// Disable lighting again, to prepare for next frame.
+	glDisable(GL_LIGHTING | GL_LIGHT0 | GL_TEXTURE_2D);
+}
+
+void silhouetteShade()
+{
+	glColor3f(0, 0, 0);
+	glPolygonMode(GL_BACK, GL_LINE);
+	glEnable(GL_POLYGON_OFFSET_LINE);
+	glPolygonOffset(5, 1);
+	glCullFace(GL_FRONT);
+	glLineWidth( silhouetteWidth );
+
+	// Render with the shaders active.
+	drawScene();
+
+	glDisable(GL_POLYGON_OFFSET_LINE);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glCullFace(GL_BACK);
+	glLineWidth( 1.0 );
+}
+
 /*
  *	Display Function
  */
@@ -267,48 +260,32 @@ void display()
 	// Clear the color buffer and the depth buffer.
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	toonShaderProgram->useProgram();
+	glPushMatrix();
 	{
-		// Render with the shaders active.
-		drawScene();
+		/* "World" rotation, controlled by mouse */
+		glRotatef(xRot, 1, 0, 0);
+		glRotatef(yRot, 0, 1, 0);
+
+		// #### shade using toon style ####
+		toonShade();
+
+		// #### Draw the silhouette ####
+		silhouetteShade();
 	}
-	// Deactivate the toon shader.
-	toonShaderProgram->disableProgram();
-
-	// #### Draw the silhouette ####
-	silhouetteShaderProgram->useProgram();
-	{
-		glDisable(GL_LIGHTING);
-		glPolygonMode(GL_BACK, GL_LINE);
-		glEnable(GL_POLYGON_OFFSET_LINE);
-		glPolygonOffset(5, 1);
-		glCullFace(GL_FRONT);
-		glLineWidth( silhouetteWidth );
-
-		// Render with the shaders active.
-		drawScene();
-
-		glEnable(GL_LIGHTING);
-		glDisable(GL_POLYGON_OFFSET_LINE);
-		glPolygonMode(GL_FRONT, GL_FILL);
-		glCullFace(GL_BACK);
-		glLineWidth( 1.0 );
-	}
-	// Deactivate the shaders.
-	silhouetteShaderProgram->disableProgram();
+	glPopMatrix();
 
 	glutSwapBuffers();
 }
 
 /*
- *	Idle function
+ *	Animation function
  */
 void anim()
 {
 	// update the rotation angle
 	if ( !pause )
 	{
-		rotationAngle += 1.0f;
+		rotationAngle += 0.5f;
 		
 		if (rotationAngle > 360.0f)
 		{
@@ -326,6 +303,12 @@ void timerFunc(int value)
 
 void keyboard(unsigned char key, int x, int y)
 {
+	if ( (key == 'm') || (key == 'M') )
+	{
+		currentModelIndex = (currentModelIndex + 1) % modelCount;
+		rotationAngle = 0;
+	}
+
 	if ( (key == 't') || (key == 'T') )
 	{
 		currentTexIndex = (currentTexIndex + 1) % textureCount;
@@ -363,11 +346,12 @@ int main(int argc, char** argv)
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutTimerFunc(20, timerFunc, 20);
-	//glutIdleFunc(anim); 
+	glutMouseFunc(mouse);
+	glutMotionFunc(motion);
 	glutKeyboardFunc(keyboard);
 	glutMainLoop();
 
-	free( polyData );
+	//delete[] models;
 
 	return 0; 
 }
