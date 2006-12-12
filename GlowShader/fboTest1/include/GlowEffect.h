@@ -14,8 +14,11 @@ public:
 
 	void init();
 
-	void begin();
-	void end();
+	void finishOriginal();
+	void beginOriginal();
+
+	void beginGlowSource();
+	void endGlowSource();
 
 private:
 	void renderSceneOnQuad(GLuint textureId, GLenum textureUnit);
@@ -23,22 +26,18 @@ private:
 
 	void blendTextures(GLuint originalTexId, GLuint finalPassTexId);
 
-	void blurToMipmaps(GLenum horizontalBuffer, GLenum verticalBuffer, float mipmapLevel, float delta);
+	void blurMipmaps(GLenum horizontalBuffer, GLenum verticalBuffer, float mipmapLevel, float delta);
 
 private:
 	unsigned int imageWinWidth;
 	unsigned int imageWinHeight;
-	GLuint originalTexture, brightPassTex, horizBlurredTex, finalBlurredTex;
+	GLuint textures[4];
 
 	// ########### SHADERS DECLARATIONS ###########
 	ShaderProgram* horizontalShaderProgram;
 	ShaderProgram* verticalShaderProgram;
-	ShaderProgram* brightPassShaderProgram;
 	ShaderProgram* blenderShaderProgram;
 	
-	ShaderObject* brightPassVertexShader;
-	ShaderObject* brightPassFragmentShader;
-
 	ShaderObject* blenderVertexShader;
 	ShaderObject* blenderFragmentShader;
 
@@ -55,6 +54,7 @@ private:
 
 	// ########### FBO DECLARATIONS ###########
 	GLuint depthBufferId;
+	GLint currenDrawBuffer;
 	FrameBufferObject* fbo;
 	// ########### END FBO DECLARATIONS ###########
 };
