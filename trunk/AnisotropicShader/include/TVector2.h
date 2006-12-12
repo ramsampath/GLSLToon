@@ -6,13 +6,14 @@ template <class T> class TVector2
 {
 public:
 	TVector2(void);
-	TVector2(const T x, const T y);
+	TVector2(const T& x, const T& y);
 	TVector2(const TVector2& other);
 	TVector2 & operator = ( TVector2 const & other);
 	~TVector2(void);
 
 	TVector2 operator + ( TVector2 const & other) const;
 	TVector2 operator - ( TVector2 const & other) const;
+	TVector2 operator - () const;
 	TVector2 operator * ( T const & other) const;
 	TVector2 operator / ( TVector2 const & other) const;
 
@@ -40,13 +41,15 @@ public:
 	TVector2& Normalize();
 
 	static T Angle( const TVector2& p1, const TVector2& p2);
-	
+
 	// Angle between unitary vectors
 	static T AngleN( const TVector2& p1, const TVector2& p2);
 
 	// Modifiers
-	void setX(const T x);
-	void setY(const T y);
+	void add( const T& x, const T& y );
+	void setX(const T& x);
+	void setY(const T& y);
+	void set(const T& x, const T& y);
 
 protected:
 	T iX;
@@ -62,7 +65,7 @@ iX(0), iY(0)
 
 template <class T>
 inline 
-TVector2<T>::TVector2(const T x, const T y):
+TVector2<T>::TVector2(const T& x, const T& y):
 iX(x), iY(y)
 {
 }
@@ -94,6 +97,13 @@ inline
 TVector2<T> TVector2<T>::operator - ( TVector2 const & other) const
 { 
 	return TVector2( iX - other.iX, iY - other.iY );
+}
+
+template <class T>
+inline 
+TVector2<T> TVector2<T>::operator - () const
+{ 
+	return TVector2( -iX, -iY );
 }
 
 template <class T>
@@ -263,17 +273,32 @@ T TVector2<T>::AngleN( const TVector2& p1, const TVector2& p2)
 
 	return (T) acos(w);
 }
+template <class T>
+inline 
+void TVector2<T>::add( const T& x, const T& y )
+{
+	iX += x;
+	iY += y;
+}
 
 template <class T>
 inline
-void TVector2<T>::setX(const T x)
+void TVector2<T>::setX(const T& x)
 {
 	iX = x;
 }
 
 template <class T>
 inline
-void TVector2<T>::setY(const T y)
+void TVector2<T>::setY(const T& y)
 {
+	iY = y;
+}
+
+template <class T>
+inline
+void TVector2<T>::set(const T& x, const T& y)
+{
+	iX = x;
 	iY = y;
 }

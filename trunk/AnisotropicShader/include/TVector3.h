@@ -6,13 +6,14 @@ template <class T> class TVector3
 {
 public:
 	TVector3(void);
-	TVector3(const T x, const T y, const T z);
+	TVector3(const T& x, const T& y, const T& z);
 	TVector3(const TVector3& other);
 	TVector3 & operator = ( TVector3 const & other);
 	~TVector3(void);
 
 	TVector3 operator + ( TVector3 const & other) const;
 	TVector3 operator - ( TVector3 const & other) const;
+	TVector3 operator - () const;
 	TVector3 operator * ( T const & other) const;
 	TVector3 operator / ( TVector3 const & other) const;
 
@@ -54,10 +55,11 @@ public:
 	static T AngleN( const TVector3& p1, const TVector3& p2);
 
 	// Modifiers
+	void add( const T& x, const T& y, const T& z );
 	void setX(const T x);
 	void setY(const T y);
 	void setZ(const T z);
-
+	void set(const T& x, const T& y, const T& z);
 protected:
 	T iX;
 	T iY;
@@ -73,7 +75,7 @@ iX(0), iY(0), iZ(0)
 
 template <class T>
 inline 
-TVector3<T>::TVector3(const T x, const T y, const T z):
+TVector3<T>::TVector3(const T& x, const T& y, const T& z):
 iX(x), iY(y), iZ(z)
 {
 }
@@ -107,6 +109,13 @@ inline
 TVector3<T> TVector3<T>::operator - ( TVector3 const & other) const
 { 
 	return TVector3( iX - other.iX, iY - other.iY, iZ - other.iZ );
+}
+
+template <class T>
+inline 
+TVector3<T> TVector3<T>::operator - () const
+{ 
+	return TVector3( -iX, -iY, -iZ );
 }
 
 template <class T>
@@ -330,6 +339,15 @@ T TVector3<T>::AngleN( const TVector3& p1, const TVector3& p2)
 }
 
 template <class T>
+inline 
+void TVector3<T>::add( const T& x, const T& y, const T& z )
+{
+	iX += x;
+	iY += y;
+	iZ += z;
+}
+
+template <class T>
 inline
 void TVector3<T>::setX(const T x)
 {
@@ -347,5 +365,14 @@ template <class T>
 inline
 void TVector3<T>::setZ(const T z)
 {
+	iZ = z;
+}
+
+template <class T>
+inline
+void TVector3<T>::set(const T& x, const T& y, const T& z)
+{
+	iX = x;
+	iY = y;
 	iZ = z;
 }
