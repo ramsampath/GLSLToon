@@ -46,24 +46,24 @@ Load3ds::Load3ds()
 	mBuffer = 0;
 	mCurrentChunk = 0;
 	mTempChunk = new Chunk;
-
-	// initialize any other members you choose to add
-	mModelData = new ModelData;
-	// create the mesh that will store the 3d model information
-	mMesh = new CMesh;
 }
 
 
 Load3ds::~Load3ds()
 {
 	delete mTempChunk;
-	delete mModelData;
 }
 
 
 CMesh* Load3ds::Create(char * aFilename)
 {
 	mCurrentChunk = new Chunk;
+
+	// initialize any other members you choose to add
+	mModelData = new ModelData;
+
+	// create the mesh that will store the 3d model information
+	mMesh = new CMesh;
 
 	mFile = fopen(aFilename, "rb");
 	ReadChunk(mCurrentChunk);
@@ -90,6 +90,7 @@ int Load3ds::CleanUp()
 	fclose(mFile);
 	delete[] static_cast<unsigned char*>(mBuffer);
 	delete mCurrentChunk;
+	delete mModelData;
 	
 /*
 Add any cleanup routines you may need between calls to Load3ds::Create(),
