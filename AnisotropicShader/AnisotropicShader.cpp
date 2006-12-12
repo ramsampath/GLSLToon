@@ -32,16 +32,24 @@ ShaderProgram* toonShaderProgram;
 ShaderObject* toonVertexShader;
 ShaderObject* toonFragmentShader;
 
-/************************************************************************/
-/*                                                                      */
-/************************************************************************/
+/* #### MATERIALS #### */
 GLfloat torusDiffuse[3][4] = {{0.0f, 0, 0.4f, 1.0}, {0.3f, 0.4f, 0.3f, 1.0}, {0.6f, 0, 0, 1.0}};
 GLfloat torusSpecular[3][4] = {{1, 1, 1, 1.0}, {1, 1, 1, 1.0}, {1, 1, 1, 1.0}};
 GLfloat torusShininess[3] = {32, 128, 64};
 
-/************************************************************************/
-/*                                                                      */
-/************************************************************************/
+/* #### CONTROL VARIABLES #### */
+bool play = true;
+
+// ############# TRACKBALL ATTRIBUTES ##################
+GLfloat xRot = 0;
+GLfloat yRot = 0;
+GLfloat xRotOld = 0;
+GLfloat yRotOld = 0;
+int mouseState = 0;
+int xCenter = 0;
+int yCenter = 0;
+
+#define M_ROTATE_XY     1
 
 CMesh* model = NULL;
 
@@ -97,7 +105,30 @@ void reshape(int w, int h)
 	gluPerspective( 45.0f, (GLfloat)w/(GLfloat)h, 1.0f, 100.0f );
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	gluLookAt( 0.0f, 0.0f, 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f );
+	gluLookAt( 0.0f, 0.0f, 6.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f );
+}
+
+
+void mouse(int button, int state, int x, int y) {
+	xCenter = x;
+	yCenter = y;
+
+	if (state == GLUT_DOWN) {
+		if (button == GLUT_LEFT_BUTTON) {
+			mouseState = M_ROTATE_XY;
+			xRotOld = xRot;
+			yRotOld = yRot;
+		}
+	} else {
+		mouseState = 0;
+	}
+}
+
+void motion(int x, int y) {
+	if (mouseState == M_ROTATE_XY) {
+		xRot = xRotOld + (float)(y - yCenter) / 4.0;
+		yRot = yRotOld + (float)(x - xCenter) / 4.0;
+	}
 }
 
 /*
@@ -106,7 +137,9 @@ void reshape(int w, int h)
 void drawScene() {
 	glPushMatrix();
 	{
-		glTranslatef(0, 0, -2);
+		/* "World" rotation, controlled by mouse */
+		glRotatef(xRot, 1, 0, 0);
+		glRotatef(yRot, 0, 1, 0);
 
 		/* ######## Torus 1 ######### */
 		glMaterialfv(GL_FRONT, GL_DIFFUSE, torusDiffuse[0]);
@@ -115,7 +148,6 @@ void drawScene() {
 
 		glPushMatrix();
 		{
-			glTranslatef(0, 0, -3);
 			glRotatef(45, 0, 1, 0);
 			glRotatef(rotationAngle, 1, 0, 0);
 			glutSolidTorus(0.25f, 2.0f, 32, 32);
@@ -129,7 +161,6 @@ void drawScene() {
 
 		glPushMatrix();
 		{
-			glTranslatef(0, 0, -3);
 			glRotatef(-45, 0, 1, 0);
 			glRotatef(rotationAngle, 1, 1, 0);
 			glutSolidTorus(0.2f, 1.6f, 32, 32);
@@ -143,13 +174,11 @@ void drawScene() {
 
 		glPushMatrix();
 		{
-			glTranslatef(0, 0, -3);
 			glRotatef(35, 0, 1, 0);
 			model->draw();
 		}
 		glPopMatrix();
 	}
-
 	glPopMatrix();
 	
 	showFPS();
@@ -202,7 +231,10 @@ void anim(int millis)
 {
 	
 	// update the rotation angle
-	rotationAngle += 1.5f;
+	if ( play )
+	{
+		rotationAngle += 1.5f;
+	}
 
 	if (rotationAngle > 360.0f)
 	{
@@ -214,9 +246,9 @@ void anim(int millis)
 
 void keyboard(unsigned char key, int x, int y)
 {
-	if ( (key == 'r') || (key == 'R') )
+	if ( (key == 'p') || (key == 'P') )
 	{
-
+		play = ! play;
 	}
 }
 
@@ -234,6 +266,8 @@ int main(int argc, char** argv)
 	glutReshapeFunc(reshape);
 	glutDisplayFunc(display);
 	glutTimerFunc(20, anim, 20);
+	glutMouseFunc(mouse);
+	glutMotionFunc(motion);
 	glutKeyboardFunc(keyboard);
 	glutMainLoop();
 
