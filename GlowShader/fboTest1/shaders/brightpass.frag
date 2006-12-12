@@ -11,12 +11,6 @@ void main(void)
 	// convert the color to HSL
 	float luminance = getLuminanceFromRGB(color);
 	
-	//
-	//
-	// STORE THE LUMINANCE IN THE ALPHA VALUE AS WELL???
-	//
-	//
-	
 	float alpha = 0.0;
 
 	// apply the bright filter using the Luminance value
@@ -32,15 +26,16 @@ void main(void)
  */
 float brightPassValue(float luminance, out float alpha)
 {
-	if( luminance > 0.7)
+	if( luminance > 0.8)
 	{
+		alpha = 1.0;
 		return max(luminance * 1.2, 1.0);
 	}
 	else
 	{
-		return max(luminance * 0.3, 0.0);
+		alpha = 0.0;
+		return max(luminance * 0.2, 0.0);
 	}
-	alpha = luminance;
 }
 
 /*
