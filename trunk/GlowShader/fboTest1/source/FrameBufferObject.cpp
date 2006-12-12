@@ -81,12 +81,9 @@ void FrameBufferObject::attachTexture( GLuint texture, GLenum attachment, GLint 
 
 void FrameBufferObject::attachDepthBuffer(GLuint depthBufferId)
 {
-	//glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
-	//	GL_DEPTH_ATTACHMENT_EXT,
-	//	GL_RENDERBUFFER_EXT, depthBufferId);
-
-	glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-		GL_DEPTH_ATTACHMENT_EXT, GL_TEXTURE_2D, depthBufferId, 0);
+	glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+		GL_DEPTH_ATTACHMENT_EXT,
+		GL_RENDERBUFFER_EXT, depthBufferId);
 
 	errcheck();
 
