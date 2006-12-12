@@ -27,8 +27,18 @@ float rotationAngle = 0;
 // the last parameter, 0,  makes it become a directional light
 GLfloat lightDirection[] = {0.0f, 0.8f, 1.0f, 0.0f};
 
-GLfloat diffuse[] = {0.7f, 0.0f, 0.0f, 1.0};
-GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0};
+GLfloat diffuse[4] = {0.5, 0.5, 1.0, 1};
+
+// ############# TRACKBALL ATTRIBUTES ##################
+GLfloat xRot = 0;
+GLfloat yRot = 0;
+GLfloat xRotOld = 0;
+GLfloat yRotOld = 0;
+int mouseState = 0;
+int xCenter = 0;
+int yCenter = 0;
+
+#define M_ROTATE_XY     1
 
 GlowEffect glow;
 CMesh* model;
@@ -45,13 +55,35 @@ void reshape(int w, int h)
 	glLoadIdentity();
 
 	//glFrustum(0.0, 1.0, 1.0, 0.0, 1.0, 100.0);
-	gluPerspective(45, (double)w/ (double)h, 1, 100);
-	gluLookAt(0.0, 0.0, 1.0, 0.0, 0.0, -100.0, 0.0, 1.0, 0.0);
+	gluPerspective(45, (double)w/ (double)h, 1, 50);
+	gluLookAt(0.0, 0.0, 1.5, 0.0, 0.0, -100.0, 0.0, 1.0, 0.0);
 
 	glMatrixMode(GL_MODELVIEW);
 
 	glLoadIdentity();
 	glutPostRedisplay();
+}
+
+void mouse(int button, int state, int x, int y) {
+	xCenter = x;
+	yCenter = y;
+
+	if (state == GLUT_DOWN) {
+		if (button == GLUT_LEFT_BUTTON) {
+			mouseState = M_ROTATE_XY;
+			xRotOld = xRot;
+			yRotOld = yRot;
+		}
+	} else {
+		mouseState = 0;
+	}
+}
+
+void motion(int x, int y) {
+	if (mouseState == M_ROTATE_XY) {
+		xRot = xRotOld + (float)(y - yCenter) / 4.0;
+		yRot = yRotOld + (float)(x - xCenter) / 4.0;
+	}
 }
 
 
@@ -77,72 +109,58 @@ void keyboard (unsigned char key, int x, int y)
 	}
 }
 
-void drawGlowSources()
-{
-	glDisable(GL_LIGHTING);
-	glPolygonMode(GL_BACK, GL_LINE);
-	glEnable(GL_POLYGON_OFFSET_LINE);
-	glPolygonOffset(1, 1);
-	glCullFace(GL_FRONT);
-	glLineWidth( 10.0 );
-	glColor3f(0.7f, 0.7f, 1.0f);
 
-	glPushMatrix();
-		glTranslatef(0, 0, -0.8);
-		glRotatef(rotationAngle, 1, 1, 0);
-		glutSolidTorus(0.12f, 0.22f, 32, 32);
-	glPopMatrix();
-
-	glPushMatrix();
-		glTranslatef(-0.5, -0.5, -0.8);
-		glutSolidSphere(0.22, 32, 32);
-	glPopMatrix();
-
-	glEnable(GL_LIGHTING);
-	glDisable(GL_POLYGON_OFFSET_LINE);
-	glPolygonMode(GL_FRONT, GL_FILL);
-	glCullFace(GL_BACK);
-	glLineWidth( 1.0 );
-}
-
+/**
+ * @description draws the scenarion on the right place
+ */
 void drawScenario()
 {
-	//drawGlowSources();
-
-	GLfloat diffuse1[4] = {0.8f, 0, 0, 1.0};
-	GLfloat specular1[4] = {1, 1, 1, 1.0};
-	GLfloat shininess1 = 128;
-
-	// materials
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular1);
-	glMaterialf(GL_FRONT, GL_SHININESS, shininess1);
-
 	glPushMatrix();
-		glTranslatef(0.4f, 0, -1);
-		glRotatef(rotationAngle, 1, 0, 0);
-		glutSolidTorus(0.1f, 0.2f, 32, 32);
+	{
+		glRotatef(rotationAngle, 0, 1, 0);
+		model->draw();
+	}
 	glPopMatrix();
+}
 
-	glPushMatrix();
-		glTranslatef(-0.4f, 0, -1);
-		glRotatef(-rotationAngle, 1, 0, 0);
-		glutSolidTorus(0.1f, 0.2f, 32, 32);
-	glPopMatrix();
 
-	GLfloat diffuse2[4] = {0.4f, 0.4f, 1.0, 1.0};
-	GLfloat specular2[4] = {1, 1, 1, 1.0};
-	GLfloat shininess2 = 128;
+/**
+ * @description draws the model using a silhouette technique; though,
+ * it's not so efficient because the model needs to be drawn twice. It just
+ * serves to demonstrate the potentiality of the glow.
+ */
+void drawGlowSources()
+{
+	// First, draw the model in wireframe
+	glDisable(GL_LIGHTING);
+	glPolygonMode(GL_FRONT, GL_LINE);
+	glEnable(GL_POLYGON_OFFSET_LINE);
+	glPolygonOffset(10, 1);
+	glLineWidth( 6.0 );
+	glColor3f(1, 1, 1);
 
-	// materials
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse2);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, specular2);
-	glMaterialf(GL_FRONT, GL_SHININESS, shininess2);
+	drawScenario();
 
-	glPushMatrix();
-	glTranslatef(-0.5, -0.5, -1);
-	glutSolidSphere(0.2, 32, 32);
-	glPopMatrix();
+	// Second, draw the model in black
+	// to cover the back faces
+	glDisable(GL_POLYGON_OFFSET_LINE);
+	glPolygonMode(GL_FRONT, GL_FILL);
+	glLineWidth( 1.0 );
+
+	glColor3f(0, 0, 0);
+
+	drawScenario();
+
+	glEnable(GL_LIGHTING);
+}
+
+/**
+ * @descrption draws the original model
+ */
+void drawOriginal()
+{
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	drawScenario();
 }
 
 /**
@@ -163,47 +181,7 @@ void showFPS()
 	frames ++;
 }
 
-void drawTMP()
-{
-	glColor3f(1,1,1);
 
-	glPushMatrix();
-	glTranslatef(0.5, 0, -1);
-	glutSolidSphere(0.14, 32, 32);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslatef(-0.1, 0, -1);
-	glutSolidSphere(0.1, 32, 32);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslatef(-0.4, 0, -1);
-	glutSolidSphere(0.07, 32, 32);
-	glPopMatrix();
-
-	glPushMatrix();
-	glTranslatef(-0.7, 0, -1);
-	glutSolidSphere(0.03, 32, 32);
-	glPopMatrix();
-
-	glPointSize(64.0);
-	glBegin(GL_POINTS);
-	glVertex3f(0.2, 0.0, -1);
-	glEnd();
-
-	glLineWidth(5.0);
-	glBegin(GL_LINES);
-	glVertex3f(-0.2, 0.5, -1);
-	glVertex3f(0.5, 0.5, -1);
-	glEnd();
-
-	glLineWidth(2.0);
-	glBegin(GL_LINES);
-	glVertex3f(-0.2, 0.4, -1);
-	glVertex3f(0.5, 0.4, -1);
-	glEnd();
-}
 
 /**
  */
@@ -212,47 +190,31 @@ void render()
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	glow.beginGlowSource();
-		glPushMatrix();
-			glTranslatef(0, 0, -0.5);
-			glRotatef(rotationAngle, 0, 1, 0);
+	glPushMatrix();
+	{
+		/* "World" rotation, controlled by mouse */
+		glRotatef(xRot, 1, 0, 0);
+		glRotatef(yRot, 0, 1, 0);
 
-			glDisable(GL_LIGHTING);
-			glPolygonMode(GL_FRONT, GL_LINE);
-			glEnable(GL_POLYGON_OFFSET_LINE);
-			glPolygonOffset(10, 1);
-			glLineWidth( 6.0 );
-			glColor3f(1, 1, 1);
+		// Glow Source Pass
+		glow.beginGlowSource();
+		{
+			drawGlowSources();
+		}
+		glow.endGlowSource();
 
-			// Render with the shaders active.
-			model->draw();
+		// Original Sources Pass
+		glow.beginOriginal();
+		{
+			drawOriginal();
+		}
+		glow.finishOriginal();
 
-			glDisable(GL_POLYGON_OFFSET_LINE);
-			glPolygonMode(GL_FRONT, GL_FILL);
-			glLineWidth( 1.0 );
-			
-			glColor3f(0, 0, 0);
-			model->draw();
-
-			glEnable(GL_LIGHTING);
-		glPopMatrix();
-	glow.endGlowSource();
-
-	glow.beginOriginal();
-		GLfloat diffuse1[4] = {0.5, 0.5, 1.0, 1};
-		glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse1);
-		glPushMatrix();
-			glTranslatef(0,0,-0.5);
-			glRotatef(rotationAngle, 0, 1, 0);
-			model->draw();
-		glPopMatrix();
-	glow.finishOriginal();
+	}
+	glPopMatrix();
 
 	showFPS();
 
-	/************************************************************************/
-	/*                                                                      */
-	/************************************************************************/
 	// update the angle: TMP
 	rotationAngle += 0.2f;
 
@@ -304,6 +266,8 @@ int main(int argc, char *argv[] )  {
 	glutDisplayFunc(render);
 	glutIdleFunc(myIdle);
 	glutReshapeFunc(reshape);
+	glutMouseFunc(mouse);
+	glutMotionFunc(motion);
 	glutKeyboardFunc(keyboard);
 	glutMainLoop();
 	return 0;
