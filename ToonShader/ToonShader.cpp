@@ -42,7 +42,7 @@ ShaderAttributeValue<int> texAttrib;
 // #############################################
 
 // Silhouette width
-float silhouetteWidth = 7.0f;
+float silhouetteWidth = 5.0f;
 
 bool pause = false;
 
